@@ -1,6 +1,6 @@
 // Service Worker - Minha Orlando PWA
 // Versão do cache - mude esse número quando atualizar arquivos
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `minha-orlando-${CACHE_VERSION}`;
 
 // Arquivos do "app shell" - cacheados na instalação
@@ -56,46 +56,41 @@ self.addEventListener('activate', (event) => {
 // === REQUISIÇÕES ===
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-
-  // Não interfere em chamadas POST/PUT/DELETE
   if (event.request.method !== 'GET') return;
+  if (NO_CACHE_DOMAINS.some(domain => url.hostname.includes(domain))) return;
 
-  // Não cacheia APIs (sempre busca da rede)
-  if (NO_CACHE_DOMAINS.some(domain => url.hostname.includes(domain))) {
-    return; // deixa o navegador lidar normalmente
+  const isNavigation = event.request.mode === 'navigate'
+                    || event.request.destination === 'document';
+
+  // === HTML / navegação: NETWORK FIRST ===
+  // Sempre tenta a rede; só cai no cache se estiver offline.
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then((resp) => {
+          if (resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          }
+          return resp;
+        })
+        .catch(() => caches.match(event.request).then(r => r || caches.match('/index.html')))
+    );
+    return;
   }
 
-  // Estratégia: Cache First, Network Fallback
+  // === Assets estáticos: STALE WHILE REVALIDATE ===
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          // Tem no cache - retorna e atualiza em background
-          fetch(event.request).then((networkResponse) => {
-            if (networkResponse.ok) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, networkResponse);
-              });
-            }
-          }).catch(() => { /* offline, sem problema */ });
-          return cachedResponse;
+    caches.match(event.request).then((cached) => {
+      const networkFetch = fetch(event.request).then((resp) => {
+        if (resp.ok && url.origin === location.origin) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
         }
-        // Não tem no cache - busca da rede
-        return fetch(event.request).then((networkResponse) => {
-          if (networkResponse.ok && url.origin === location.origin) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        }).catch(() => {
-          // Offline e não tem no cache - retorna fallback
-          if (event.request.destination === 'document') {
-            return caches.match('/index.html');
-          }
-        });
-      })
+        return resp;
+      }).catch(() => null);
+      return cached || networkFetch;
+    })
   );
 });
 

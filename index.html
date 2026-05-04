@@ -213,6 +213,26 @@ document.addEventListener('DOMContentLoaded', async function() {
   <script>
     // PWA bootstrap — sobrevive ao swap do bundler reaplicando apos o load event
     (function () {
+      // === KILL SWITCH ===
+      // Visita ?reset → limpa todos os caches + desregistra todos os SWs.
+      // Use quando o app travar em uma versão antiga.
+      if (location.search.indexOf('reset') !== -1) {
+        (async function () {
+          try {
+            if ('caches' in window) {
+              var keys = await caches.keys();
+              await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+            }
+            if ('serviceWorker' in navigator) {
+              var regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map(function (r) { return r.unregister(); }));
+            }
+          } catch (e) { console.error('[PWA reset]', e); }
+          location.replace(location.origin + location.pathname);
+        })();
+        return;
+      }
+
       var deferredPrompt = null;
       var installed = false;
       var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
