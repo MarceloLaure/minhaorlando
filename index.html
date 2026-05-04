@@ -211,58 +211,108 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   <!-- PWA: registro do Service Worker + botao instalar -->
   <script>
-    if ('serviceWorker' in navigator) {
+    // PWA bootstrap — sobrevive ao swap do bundler reaplicando apos o load event
+    (function () {
+      var deferredPrompt = null;
+      var installed = false;
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                       || window.navigator.standalone === true;
+
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log('[PWA] beforeinstallprompt capturado');
+        var btn = document.getElementById('pwa-install-btn');
+        if (btn) btn.style.display = 'block';
+      });
+
+      window.addEventListener('appinstalled', function () {
+        console.log('[PWA] App instalado!');
+        installed = true;
+        var btn = document.getElementById('pwa-install-btn');
+        if (btn) btn.remove();
+      });
+
+      function injectMetaTags() {
+        var head = document.head;
+        if (!head) return;
+        function ensure(tag, attrs) {
+          var sel = tag;
+          for (var k in attrs) {
+            if (k === 'rel' || k === 'name' || k === 'sizes')
+              sel += '[' + k + '="' + attrs[k] + '"]';
+          }
+          if (head.querySelector(sel)) return;
+          var el = document.createElement(tag);
+          for (var k2 in attrs) el.setAttribute(k2, attrs[k2]);
+          head.appendChild(el);
+        }
+        ensure('link', { rel: 'manifest', href: '/manifest.json' });
+        ensure('link', { rel: 'apple-touch-icon', href: '/icon-192.png' });
+        ensure('link', { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/icon-192.png' });
+        ensure('link', { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/icon-512.png' });
+        ensure('meta', { name: 'theme-color', content: '#FF6B9D' });
+        ensure('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });
+        ensure('meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'default' });
+        ensure('meta', { name: 'apple-mobile-web-app-title', content: 'Minha Orlando' });
+      }
+
+      function createButton() {
+        if (installed || isStandalone) return;
+        if (document.getElementById('pwa-install-btn')) return;
+        var btn = document.createElement('button');
+        btn.id = 'pwa-install-btn';
+        btn.style.cssText = [
+          'display:none','position:fixed','bottom:24px','right:24px','z-index:99999',
+          'background:#FF6B9D','color:#fff','border:none','border-radius:24px',
+          'padding:12px 20px','font-size:15px','font-weight:600','cursor:pointer',
+          'box-shadow:0 4px 16px rgba(255,107,157,0.45)',
+          'font-family:-apple-system,BlinkMacSystemFont,sans-serif'
+        ].join(';');
+
+        if (isIOS) {
+          btn.textContent = '📲 Como instalar';
+          btn.onclick = function () {
+            alert('Para instalar no iPhone:\n\n1. Toque no botão Compartilhar (quadrado com seta ↑) na barra do Safari\n2. Role e toque em "Adicionar à Tela de Início"\n3. Confirme em "Adicionar"');
+          };
+          btn.style.display = 'block';
+        } else {
+          btn.textContent = '📲 Instalar app';
+          btn.onclick = function () {
+            if (!deferredPrompt) {
+              alert('A opção de instalar ainda não está disponível. Use o menu do navegador (3 pontinhos) → "Instalar app" / "Adicionar à tela inicial".');
+              return;
+            }
+            btn.style.display = 'none';
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function (c) {
+              console.log('[PWA] Resultado:', c.outcome);
+              if (c.outcome === 'dismissed') btn.style.display = 'block';
+              deferredPrompt = null;
+            });
+          };
+          if (deferredPrompt) btn.style.display = 'block';
+        }
+        document.body.appendChild(btn);
+      }
+
+      function bootstrap() {
+        injectMetaTags();
+        createButton();
+      }
+
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(function (reg) { console.log('[PWA] Service Worker registrado:', reg.scope); })
-          .catch(function (err) { console.error('[PWA] Falha ao registrar SW:', err); });
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(function (reg) { console.log('[PWA] SW registrado:', reg.scope); })
+            .catch(function (err) { console.error('[PWA] SW erro:', err); });
+        }
+        bootstrap();
+        setTimeout(bootstrap, 800);
+        setTimeout(bootstrap, 2500);
       });
-    }
-
-    var deferredPrompt = null;
-    var installBtn = document.createElement('button');
-    installBtn.textContent = '📲 Instalar app';
-    installBtn.style.cssText = [
-      'display:none',
-      'position:fixed',
-      'bottom:24px',
-      'right:24px',
-      'z-index:99999',
-      'background:#FF6B9D',
-      'color:#fff',
-      'border:none',
-      'border-radius:24px',
-      'padding:12px 20px',
-      'font-size:15px',
-      'font-weight:600',
-      'cursor:pointer',
-      'box-shadow:0 4px 16px rgba(255,107,157,0.45)',
-      'font-family:-apple-system,BlinkMacSystemFont,sans-serif'
-    ].join(';');
-    document.body.appendChild(installBtn);
-
-    window.addEventListener('beforeinstallprompt', function (e) {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.style.display = 'block';
-      console.log('[PWA] Pronto para instalar');
-    });
-
-    installBtn.addEventListener('click', function () {
-      if (!deferredPrompt) return;
-      installBtn.style.display = 'none';
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(function (choice) {
-        console.log('[PWA] Resultado da instalacao:', choice.outcome);
-        deferredPrompt = null;
-      });
-    });
-
-    window.addEventListener('appinstalled', function () {
-      console.log('[PWA] App instalado com sucesso!');
-      installBtn.style.display = 'none';
-      deferredPrompt = null;
-    });
+    })();
   </script>
 </body>
 </html>
