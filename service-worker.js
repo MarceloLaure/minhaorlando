@@ -1,6 +1,6 @@
 // Service Worker - Minha Orlando PWA
 // Versão do cache - mude esse número quando atualizar arquivos
-const CACHE_VERSION = 'v87';
+const CACHE_VERSION = 'v88';
 const CACHE_NAME = `minha-orlando-${CACHE_VERSION}`;
 
 // Arquivos do "app shell" - cacheados na instalação
