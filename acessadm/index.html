@@ -1253,6 +1253,7 @@ function renderCustomers() {
       : '';
 
     if (g.members.length === 0) {
+      const target = ownerOtherFams[0]; // primeira outra familia onde owner eh membro
       return `
         <div class="fam-group">
           <div class="fam-head">
@@ -1270,7 +1271,13 @@ function renderCustomers() {
           </div>
           <div style="padding:18px 18px 22px;color:var(--text-faint);font-size:13px;text-align:center">
             Nenhum membro nessa família.
-            ${ownerOtherFams.length > 0 ? '<br><span style="font-size:11px">O owner foi adicionado como membro em: <strong>' + ownerOtherFams.map(o => escapeHtml(o.familyName)).join(', ') + '</strong></span>' : ''}
+            ${target ? `
+              <br><span style="font-size:11px">O owner foi adicionado como membro em: <strong>${escapeHtml(target.familyName)}</strong></span>
+              <br><br>
+              <button class="row-btn primary" onclick="window.__mergeFamily('${g.family.id}', '${escapeHtml(g.family.name || '')}', '${target.familyId}', '${escapeHtml(target.familyName)}', '${escapeHtml(g.family.owner_email || '')}')">
+                🔄 Mesclar com "${escapeHtml(target.familyName)}"
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
@@ -1354,6 +1361,38 @@ function renderCustomers() {
     `;
   }).join('');
 }
+
+window.__mergeFamily = async (sourceId, sourceName, targetId, targetName, ownerEmail) => {
+  const ok = await admConfirm(
+    'Mesclar família vazia?',
+    'Owner: ' + ownerEmail + '\n\nVai fazer:\n• Mover allowed_users.family_id pra "' + targetName + '"\n• Excluir "' + sourceName + '" (vazia, duplicata)\n\nDepois disso, ' + ownerEmail + ' vai ver "' + targetName + '" quando logar no app.\nNão pode ser desfeito.',
+    { icon: '🔄', okLabel: 'Sim, mesclar' }
+  );
+  if (!ok) return;
+  try {
+    // 1. Move allowed_users vinculados a essa familia pra target
+    const { data: upData, error: upErr } = await supa
+      .from('allowed_users')
+      .update({ family_id: targetId })
+      .eq('family_id', sourceId)
+      .select();
+    if (upErr) throw upErr;
+    if (!upData || upData.length === 0) {
+      console.warn('[merge] no allowed_users updated — proceeding to delete anyway');
+    }
+
+    // 2. Deleta a familia source
+    const { error: delErr } = await supa.from('families').delete().eq('id', sourceId);
+    if (delErr) throw delErr;
+
+    showToast('✓ Mesclado: "' + sourceName + '" → "' + targetName + '"');
+    loadCustomers();
+    if (subsData.length > 0) loadSubscriptions();
+    if (linksData.length > 0) loadLinks();
+  } catch (err) {
+    showToast('Erro ao mesclar: ' + err.message, 'err');
+  }
+};
 
 window.__toggleEditPlan = async (memberId, newVal) => {
   try {
