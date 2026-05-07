@@ -200,6 +200,7 @@
       <button class="tab active" data-tab="waitlist">Fila de espera <span class="badge" id="badgeWaitlist">…</span></button>
       <button class="tab" data-tab="subscriptions">Assinaturas <span class="badge" id="badgeSubs">…</span></button>
       <button class="tab" data-tab="customers">Clientes <span class="badge" id="badgeCustomers">…</span></button>
+      <button class="tab" data-tab="links">Vínculos <span class="badge" id="badgeLinks">…</span></button>
       <button class="tab" data-tab="orders">Pedidos Kiwify <span class="badge" id="badgeOrders">…</span></button>
     </div>
 
@@ -283,6 +284,28 @@
       <div id="custContent">
         <div class="spinner"></div>
       </div>
+    </div>
+
+    <!-- TAB: LINKS (vinculos entre familias) -->
+    <div class="tab-pane" id="paneLinks" style="display:none">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Total de vínculos</div><div class="kpi-value" id="kpiLinksTotal">—</div></div>
+        <div class="kpi"><div class="kpi-label">Owners c/ convidados</div><div class="kpi-value" id="kpiLinksOwners">—</div></div>
+        <div class="kpi"><div class="kpi-label">Famílias convidadas</div><div class="kpi-value" id="kpiLinksGuests">—</div></div>
+      </div>
+
+      <div class="toolbar">
+        <input type="search" id="linkSearch" placeholder="Buscar por nome ou email...">
+        <button id="linkRefresh">↻ Atualizar</button>
+        <button id="linkAdd" class="primary">+ Novo vínculo</button>
+      </div>
+
+      <div class="table-wrap" id="linksTableWrap"><div class="spinner"></div></div>
+
+      <p style="margin-top:14px;font-size:12px;color:var(--text-faint);line-height:1.5">
+        💡 Vínculos definem quais famílias compartilham viagem (anfitrião + convidadas).
+        Famílias só veem dados de outras famílias se houver vínculo aqui.
+      </p>
     </div>
 
     <!-- TAB: ORDERS -->
@@ -438,6 +461,7 @@ document.querySelectorAll('.tab').forEach(btn => {
     if (tab === 'subscriptions' && subsData.length === 0) loadSubscriptions();
     if (tab === 'orders' && ordersData.length === 0) loadOrders();
     if (tab === 'customers' && customersData.length === 0) loadCustomers();
+    if (tab === 'links' && linksData.length === 0) loadLinks();
   });
 });
 
@@ -671,9 +695,7 @@ function renderSubsTable() {
           const isActive = s.status === 'active';
           return `
             <tr>
-              <td class="email">
-                <span style="cursor:pointer" onclick="window.__renameFamily('${s.id}', '${escapeHtml(s.name || '')}')">${escapeHtml(s.name || '—')} <span style="opacity:.5">✏️</span></span>
-              </td>
+              <td class="email">${escapeHtml(s.name || '—')}</td>
               <td>
                 <span style="display:inline-flex;align-items:center;gap:6px">
                   <span style="font-size:14px">👑</span>
@@ -693,6 +715,7 @@ function renderSubsTable() {
                   ${isActive ? `<button class="row-btn danger" onclick="window.__revokeFamily('${s.id}', '${escapeHtml(s.owner_email || '')}')">Revogar</button>` : ''}
                   ${!isActive && s.status !== 'active' ? `<button class="row-btn" onclick="window.__reactivateFamily('${s.id}', '${escapeHtml(s.owner_email || '')}')">Reativar</button>` : ''}
                   ${s.kiwify_order_id ? `<button class="row-btn" onclick="window.__copyText('${s.kiwify_order_id}')" title="Copiar order_id da Kiwify">📋 ID</button>` : ''}
+                  <button class="row-btn danger" onclick="window.__deleteFamily('${s.id}', '${escapeHtml(s.name || '')}', '${escapeHtml(s.owner_email || '')}')">🗑 Excluir</button>
                 </div>
               </td>
             </tr>
@@ -786,6 +809,25 @@ window.__revokeFamily = async (id, email) => {
   }
 };
 
+window.__deleteFamily = async (id, name, email) => {
+  const ok = await admConfirm(
+    'Excluir família?',
+    'Família: ' + (name || '—') + '\nOwner: ' + (email || '—') + '\n\nIsso vai REMOVER PERMANENTEMENTE:\n• A família e seus dados\n• Todos os membros (family_members)\n• Vínculos com outras famílias (family_links)\n• Despesas, itinerário, fotos\n\nUse SÓ pra apagar dados de teste ou duplicatas.\nEssa ação não pode ser desfeita.',
+    { icon: '🗑', danger: true, okLabel: 'Sim, excluir tudo' }
+  );
+  if (!ok) return;
+  try {
+    // Desvincula allowed_users primeiro (pra não dar erro de FK)
+    await supa.from('allowed_users').update({ family_id: null }).eq('family_id', id);
+    const { error } = await supa.from('families').delete().eq('id', id);
+    if (error) throw error;
+    showToast('✓ Família excluída: ' + (name || email));
+    loadSubscriptions();
+  } catch (err) {
+    showToast('Erro ao excluir: ' + err.message, 'err');
+  }
+};
+
 window.__renameFamily = async (id, currentName) => {
   const newName = await admPrompt('Renomear família', '', currentName || '', { icon: '✏️' });
   if (newName === null) return;
@@ -796,7 +838,9 @@ window.__renameFamily = async (id, currentName) => {
     const { error } = await supa.from('families').update({ name: trimmed }).eq('id', id);
     if (error) throw error;
     showToast('✓ Renomeado pra: ' + trimmed);
-    loadSubscriptions();
+    // Recarrega as 2 tabs que mostram nome de familia
+    if (subsData.length > 0) loadSubscriptions();
+    if (customersData.length > 0) loadCustomers();
   } catch (err) {
     showToast('Erro ao renomear: ' + err.message, 'err');
   }
@@ -1175,7 +1219,9 @@ function renderCustomers() {
       <div class="fam-group">
         <div class="fam-head">
           <span class="crown">👑</span>
-          <div class="fam-name">${escapeHtml(g.family.name || 'Família')}</div>
+          <div class="fam-name" style="cursor:pointer" title="Click pra renomear" onclick="window.__renameFamily('${g.family.id}', '${escapeHtml(g.family.name || '')}')">
+            ${escapeHtml(g.family.name || 'Família')} <span style="opacity:.5;font-size:11px">✏️</span>
+          </div>
           <div class="fam-meta">
             <span><b>${escapeHtml(g.family.owner_email || '—')}</b></span>
             <span>${g.members.length} ${g.members.length === 1 ? 'pessoa' : 'pessoas'}</span>
@@ -1346,6 +1392,178 @@ document.getElementById('custFilterFamily').addEventListener('change', renderCus
 document.getElementById('custFilterType').addEventListener('change', renderCustomers);
 document.getElementById('custRefresh').addEventListener('click', loadCustomers);
 document.getElementById('custExport').addEventListener('click', exportCustomersCSV);
+
+// ============================================================
+// LINKS (vinculos entre familias)
+// ============================================================
+let linksData = [];
+let linksFamilies = []; // cache pra dropdown do "+ novo vinculo"
+
+async function loadLinks() {
+  const wrap = document.getElementById('linksTableWrap');
+  wrap.innerHTML = '<div class="spinner"></div>';
+  try {
+    const select = 'id,permission,linked_at,owner:families!owner_family_id(id,name,owner_email,plan,status),guest:families!guest_family_id(id,name,owner_email,plan,status)';
+    const [linksRes, famsRes] = await Promise.all([
+      supa.from('family_links').select(select).order('linked_at', { ascending: false }),
+      supa.from('families').select('id, name, owner_email, plan, status').order('name'),
+    ]);
+    if (linksRes.error) throw linksRes.error;
+    if (famsRes.error) throw famsRes.error;
+    linksData = linksRes.data || [];
+    linksFamilies = famsRes.data || [];
+    updateLinksKPIs();
+    renderLinks();
+    document.getElementById('badgeLinks').textContent = linksData.length;
+  } catch (err) {
+    wrap.innerHTML = '<div class="empty"><div class="icon">⚠</div><div>Erro: ' + escapeHtml(err.message || String(err)) + '</div></div>';
+  }
+}
+
+function updateLinksKPIs() {
+  const total = linksData.length;
+  const owners = new Set(linksData.map(l => l.owner?.id).filter(Boolean)).size;
+  const guests = new Set(linksData.map(l => l.guest?.id).filter(Boolean)).size;
+  document.getElementById('kpiLinksTotal').textContent = total;
+  document.getElementById('kpiLinksOwners').textContent = owners;
+  document.getElementById('kpiLinksGuests').textContent = guests;
+}
+
+function getLinksFiltered() {
+  const q = document.getElementById('linkSearch').value.trim().toLowerCase();
+  if (!q) return linksData;
+  return linksData.filter(l => {
+    const onm = (l.owner?.name || '').toLowerCase();
+    const gnm = (l.guest?.name || '').toLowerCase();
+    const oem = (l.owner?.owner_email || '').toLowerCase();
+    const gem = (l.guest?.owner_email || '').toLowerCase();
+    return onm.includes(q) || gnm.includes(q) || oem.includes(q) || gem.includes(q);
+  });
+}
+
+function renderLinks() {
+  const rows = getLinksFiltered();
+  const wrap = document.getElementById('linksTableWrap');
+  if (rows.length === 0) {
+    wrap.innerHTML = '<div class="empty"><div class="icon">🔗</div><div>Nenhum vínculo ainda.<br><span style="font-size:12px">Conforme convidados pagam (ou você adiciona manualmente), aparecem aqui.</span></div></div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>👑 Anfitrião</th>
+          <th>Convidado</th>
+          <th>Permissão</th>
+          <th>Vinculado em</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(l => {
+          const owner = l.owner || {};
+          const guest = l.guest || {};
+          return `
+            <tr>
+              <td>
+                <div class="email">${escapeHtml(owner.name || '—')}</div>
+                <div class="muted" style="font-size:11px">${escapeHtml(owner.owner_email || '—')}</div>
+              </td>
+              <td>
+                <div class="email">${escapeHtml(guest.name || '—')}</div>
+                <div class="muted" style="font-size:11px">${escapeHtml(guest.owner_email || '—')}</div>
+              </td>
+              <td><span class="badge-pill ${l.permission === 'edit' ? 'b-yellow' : 'b-blue'}">${escapeHtml(l.permission || 'view')}</span></td>
+              <td class="muted">${formatDateBR(l.linked_at)}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="row-btn" onclick="window.__togglePermission('${l.id}', '${l.permission || 'view'}')">${l.permission === 'edit' ? '👁 Só ver' : '✏ Pode editar'}</button>
+                  <button class="row-btn danger" onclick="window.__unlinkFamilies('${l.id}', '${escapeHtml(owner.name || '')}', '${escapeHtml(guest.name || '')}')">🔗 Desvincular</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+window.__togglePermission = async (linkId, currentPerm) => {
+  const newPerm = currentPerm === 'edit' ? 'view' : 'edit';
+  try {
+    const { error } = await supa.from('family_links').update({ permission: newPerm }).eq('id', linkId);
+    if (error) throw error;
+    showToast('✓ Permissão: ' + newPerm);
+    loadLinks();
+  } catch (err) {
+    showToast('Erro: ' + err.message, 'err');
+  }
+};
+
+window.__unlinkFamilies = async (linkId, ownerName, guestName) => {
+  const ok = await admConfirm(
+    'Desvincular famílias?',
+    'Anfitrião: ' + ownerName + '\nConvidada: ' + guestName + '\n\nA família convidada vai PERDER acesso aos dados compartilhados (mas mantém a própria assinatura/família).',
+    { icon: '🔗', danger: true, okLabel: 'Sim, desvincular' }
+  );
+  if (!ok) return;
+  try {
+    const { error } = await supa.from('family_links').delete().eq('id', linkId);
+    if (error) throw error;
+    showToast('✓ Vínculo removido');
+    loadLinks();
+  } catch (err) {
+    showToast('Erro: ' + err.message, 'err');
+  }
+};
+
+document.getElementById('linkSearch').addEventListener('input', renderLinks);
+document.getElementById('linkRefresh').addEventListener('click', loadLinks);
+document.getElementById('linkAdd').addEventListener('click', async () => {
+  if (linksFamilies.length < 2) {
+    return admAlert('Famílias insuficientes', 'Você precisa de pelo menos 2 famílias cadastradas pra criar um vínculo.');
+  }
+  const opts = linksFamilies.map(f => ({
+    value: f.id,
+    label: (f.name || 'Família') + ' (' + (f.owner_email || '—') + ')',
+  }));
+  const data = await admForm(
+    'Novo vínculo entre famílias',
+    'Vincula uma família ANFITRIÃ (que paga) a uma família CONVIDADA (que vai junto na viagem).',
+    [
+      { name: 'owner', label: 'Anfitrião 👑', type: 'select', value: '', options: [{ value: '', label: '— escolher —' }, ...opts] },
+      { name: 'guest', label: 'Convidada', type: 'select', value: '', options: [{ value: '', label: '— escolher —' }, ...opts] },
+      { name: 'permission', label: 'Permissão da convidada', type: 'select', value: 'view', options: [
+        { value: 'view', label: '👁 Só visualizar (recomendado)' },
+        { value: 'edit', label: '✏ Pode editar plano' },
+      ]},
+    ],
+    { icon: '🔗', okLabel: 'Vincular' }
+  );
+  if (!data) return;
+  if (!data.owner || !data.guest) { showToast('Selecione anfitrião e convidada', 'err'); return; }
+  if (data.owner === data.guest) { showToast('Anfitrião e convidada não podem ser a mesma família', 'err'); return; }
+  try {
+    const { error } = await supa.from('family_links').insert({
+      owner_family_id: data.owner,
+      guest_family_id: data.guest,
+      permission: data.permission || 'view',
+    });
+    if (error) {
+      if (error.message.includes('duplicate')) {
+        showToast('Esse vínculo já existe', 'err');
+      } else {
+        throw error;
+      }
+      return;
+    }
+    showToast('✓ Vínculo criado');
+    loadLinks();
+  } catch (err) {
+    showToast('Erro: ' + err.message, 'err');
+  }
+});
 
 // ============================================================
 // HELPERS
