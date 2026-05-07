@@ -138,3 +138,58 @@ Pode reorganizar se achar melhor. **Foco total em conversão.**
 Um único arquivo `index.html` completo, pronto pra substituir o atual
 em `c:\MinhaOrlando\index.html`. Tudo inline, sem deps externas além de
 Google Fonts.
+
+---
+
+## 9. Prompt pronto pra Claude Design (com GitHub conector)
+
+Cole isso direto no Claude Design (claude.ai/design) com o GitHub
+conector ativado:
+
+```
+Você está conectado ao meu repo GitHub via MCP: MarceloLaure/minhaorlando
+
+Antes de gerar qualquer coisa:
+1. Lê BRIEFING_LANDING.md da raiz do repo
+2. Olha app/index.html (o app PWA) pra entender a vibe visual atual
+3. Olha index.html da raiz (placeholder atual)
+
+NÚMEROS REAIS (use esses, não invente):
+• 10 parques: Magic Kingdom, EPCOT, Hollywood Studios, Animal Kingdom,
+  Universal Studios, Islands of Adventure, Epic Universe, Volcano Bay,
+  SeaWorld, Busch Gardens
+• 107 atrações com altura mínima validada por membro da família
+• 50+ restaurantes (cardápio, reviews IA, kid-friendly, reservas)
+• Filas em tempo real (5 min, queue-times.com) com histórico de picos
+• Clima 7 dias + horário (Open-Meteo)
+• Câmbio USD/BRL ao vivo
+• 24 dias de itinerário exemplo (13/09→06/10/2026)
+
+DIFERENCIAIS:
+1. Pixie IA (GPT-4o-mini + web search) — monta roteiro considerando
+   filas, clima, altura das crianças, distância
+2. Família com altura — filtra automaticamente quem pode em qual brinquedo
+3. Despesas com OCR de cupom (foto → extração automática)
+4. PWA offline (instala como app nativo)
+5. Magic link sem senha
+
+OBJETIVO: vender pra famílias brasileiras indo a Orlando 2026.
+CTA: "Acessar o app →" (/app/). Tráfego mobile (Instagram/TikTok).
+
+TÉCNICO:
+• Único HTML, CSS inline, sem build, sem React
+• Mobile-first 360px-1920px
+• SEO: title 60 chars, meta description 155 chars, OG, Twitter Card,
+  canonical, hreflang pt-BR
+• AEO: JSON-LD SoftwareApplication + FAQPage + Organization
+• Performance: critical CSS inline, preload fontes, sem libs externas
+• A11y: heading hierarchy, alt em imagens, aria-labels
+• Lighthouse alvo 95+ em tudo
+
+ENTREGA: substitui meu index.html da raiz. Um arquivo completo.
+
+Antes de codar mostre:
+A) 3 direções de hero (1 frase cada)
+B) Estrutura de seções proposta
+Aí eu escolho e você executa.
+```
