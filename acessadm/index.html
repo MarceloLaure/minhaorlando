@@ -88,6 +88,21 @@
     .badge-pill.b-yellow{background:rgba(252,211,77,.16);color:var(--gold)}
     .badge-pill.b-red{background:rgba(239,68,68,.16);color:#FCA5A5}
     .badge-pill.b-purple{background:rgba(167,139,250,.18);color:#C4B5FD}
+
+    /* Action buttons inline na tabela */
+    .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+    .row-btn{padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text-dim);font-size:11px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:all .12s;white-space:nowrap}
+    .row-btn:hover{background:rgba(255,255,255,.12);color:var(--text)}
+    .row-btn.danger{color:#FCA5A5;border-color:rgba(239,68,68,.4)}
+    .row-btn.danger:hover{background:rgba(239,68,68,.18);color:#FCA5A5}
+    .row-btn.primary{background:rgba(252,211,77,.15);color:var(--gold);border-color:rgba(252,211,77,.4)}
+    .row-btn.primary:hover{background:rgba(252,211,77,.25)}
+
+    /* Toast */
+    #toast{position:fixed;bottom:24px;right:24px;padding:14px 22px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:700;z-index:1000;display:none;box-shadow:0 16px 40px rgba(0,0,0,.4);animation:toastIn .25s ease-out}
+    #toast.ok{border-color:rgba(34,197,94,.4)}
+    #toast.err{border-color:rgba(239,68,68,.4);color:#FCA5A5}
+    @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     .empty{padding:60px 20px;text-align:center;color:var(--text-faint)}
     .empty .icon{font-size:42px;margin-bottom:12px;opacity:.5}
     .placeholder{padding:80px 20px;text-align:center;color:var(--text-faint);background:var(--surface);border:1px dashed var(--border);border-radius:16px}
@@ -138,6 +153,8 @@
   </div>
 
   <!-- ADMIN -->
+  <div id="toast"></div>
+
   <main id="adminMain" style="display:none">
     <div class="tabs">
       <button class="tab active" data-tab="waitlist">Fila de espera <span class="badge" id="badgeWaitlist">…</span></button>
@@ -562,12 +579,14 @@ function renderSubsTable() {
           <th>Acesso até</th>
           <th>Status</th>
           <th>Convite</th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
         ${rows.map(s => {
           const plan = PLAN_INFO[s.plan] || { label: s.plan, badge: 'b-blue' };
           const status = STATUS_INFO[s.status] || { label: s.status, badge: 'b-blue' };
+          const isActive = s.status === 'active';
           return `
             <tr>
               <td class="email">${escapeHtml(s.name || '—')}</td>
@@ -576,7 +595,17 @@ function renderSubsTable() {
               <td class="muted">${s.paid_at ? formatDateBR(s.paid_at) : '—'}</td>
               <td class="muted">${s.access_until ? formatDateBR(s.access_until) : '—'}</td>
               <td><span class="badge-pill ${status.badge}">${status.label}</span></td>
-              <td class="muted" style="font-family:monospace;font-size:12px">${s.invite_code || '—'}</td>
+              <td class="muted" style="font-family:monospace;font-size:12px">
+                ${s.invite_code ? `<span style="cursor:pointer" title="Clique pra copiar" onclick="window.__copyText('${s.invite_code}')">${s.invite_code}</span>` : '—'}
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button class="row-btn primary" onclick="window.__extendFamily('${s.id}', '${escapeHtml(s.owner_email || '')}', '${s.access_until || ''}')">+ dias</button>
+                  ${isActive ? `<button class="row-btn danger" onclick="window.__revokeFamily('${s.id}', '${escapeHtml(s.owner_email || '')}')">Revogar</button>` : ''}
+                  ${!isActive && s.status !== 'active' ? `<button class="row-btn" onclick="window.__reactivateFamily('${s.id}', '${escapeHtml(s.owner_email || '')}')">Reativar</button>` : ''}
+                  ${s.kiwify_order_id ? `<button class="row-btn" onclick="window.__copyText('${s.kiwify_order_id}')" title="Copiar order_id da Kiwify">📋 ID</button>` : ''}
+                </div>
+              </td>
             </tr>
           `;
         }).join('')}
@@ -584,6 +613,127 @@ function renderSubsTable() {
     </table>
   `;
 }
+
+// ============================================================
+// AÇÕES MANUAIS (admin) — funções globais chamadas dos onclicks
+// ============================================================
+function showToast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = type;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+window.__copyText = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✓ Copiado: ' + text);
+  } catch (_) {
+    showToast('Não consegui copiar', 'err');
+  }
+};
+
+window.__extendFamily = async (id, email, currentAccessUntil) => {
+  const days = prompt(
+    'Estender acesso por quantos dias?\n\n' +
+    'Família: ' + email + '\n' +
+    'Acesso atual até: ' + (currentAccessUntil || 'não definido'),
+    '30'
+  );
+  if (!days) return;
+  const n = parseInt(days, 10);
+  if (!Number.isFinite(n) || n <= 0 || n > 3650) {
+    showToast('Número de dias inválido (1-3650)', 'err');
+    return;
+  }
+  try {
+    // Calcula nova data baseada em currentAccessUntil (ou hoje se vazio)
+    const base = currentAccessUntil
+      ? new Date(currentAccessUntil + 'T00:00:00')
+      : new Date();
+    base.setDate(base.getDate() + n);
+    const newAccessUntil = base.toISOString().slice(0, 10);
+
+    const { error } = await supa
+      .from('families')
+      .update({ access_until: newAccessUntil, status: 'active' })
+      .eq('id', id);
+    if (error) throw error;
+
+    showToast('✓ Estendido: ' + email + ' agora tem acesso até ' + formatDateBR(newAccessUntil));
+    loadSubscriptions();
+  } catch (err) {
+    showToast('Erro ao estender: ' + err.message, 'err');
+  }
+};
+
+window.__revokeFamily = async (id, email) => {
+  if (!confirm(
+    '⚠️ REVOGAR acesso da família?\n\n' +
+    email + '\n\n' +
+    'Isso vai:\n' +
+    '• Marcar status = "refunded"\n' +
+    '• Cortar acesso (access_until = hoje)\n' +
+    '• Pausar todos os usuários dessa família\n\n' +
+    'Use em casos de chargeback ou estorno manual.\n' +
+    'Tem certeza?'
+  )) return;
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: e1 } = await supa
+      .from('families')
+      .update({ status: 'refunded', access_until: today })
+      .eq('id', id);
+    if (e1) throw e1;
+
+    const { error: e2 } = await supa
+      .from('allowed_users')
+      .update({ status: 'paused' })
+      .eq('family_id', id);
+    if (e2) console.warn('[revoke] allowed_users update failed:', e2);
+
+    showToast('✓ Revogado: ' + email);
+    loadSubscriptions();
+  } catch (err) {
+    showToast('Erro ao revogar: ' + err.message, 'err');
+  }
+};
+
+window.__reactivateFamily = async (id, email) => {
+  const days = prompt(
+    'Reativar e dar quantos dias de acesso?\n\n' +
+    'Família: ' + email + '\n\n' +
+    '(Use isso pra reativar uma família que foi expirada/revogada por engano)',
+    '30'
+  );
+  if (!days) return;
+  const n = parseInt(days, 10);
+  if (!Number.isFinite(n) || n <= 0 || n > 3650) {
+    showToast('Número de dias inválido', 'err');
+    return;
+  }
+  try {
+    const newAccessUntil = new Date(Date.now() + n * 86400e3).toISOString().slice(0, 10);
+    const { error: e1 } = await supa
+      .from('families')
+      .update({ status: 'active', access_until: newAccessUntil })
+      .eq('id', id);
+    if (e1) throw e1;
+
+    const { error: e2 } = await supa
+      .from('allowed_users')
+      .update({ status: 'active' })
+      .eq('family_id', id);
+    if (e2) console.warn('[reactivate] allowed_users update failed:', e2);
+
+    showToast('✓ Reativado: ' + email + ' (+' + n + ' dias)');
+    loadSubscriptions();
+  } catch (err) {
+    showToast('Erro ao reativar: ' + err.message, 'err');
+  }
+};
 
 document.getElementById('subsSearch').addEventListener('input', renderSubsTable);
 document.getElementById('subsFilterStatus').addEventListener('change', renderSubsTable);
