@@ -1,7 +1,14 @@
 -- ============================================================
--- SEED: cria familias 'vitalicias' pros emails ja em allowed_users
--- Util pra testar o fluxo de assinatura sem precisar pagar de verdade.
+-- ⚠️  AVISO IMPORTANTE — NÃO RODE ESSE SCRIPT DE NOVO ⚠️
+-- ============================================================
+-- Esse seed cria 1 familia VITALICIA por allowed_user.
 --
+-- Se voce ja rodou ele E DEPOIS mesclou familias no /acessadm/, NAO RODE
+-- DE NOVO — vai recriar as duplicatas que voce ja apagou. Os usuarios
+-- que estavam como membros de outra familia perdem o vinculo.
+--
+-- Se aconteceu por engano, rode 'fix_seed_again.sql' pra desfazer.
+-- ============================================================
 -- O que faz:
 -- 1. Pra cada email em allowed_users, cria uma familia (se nao tiver)
 -- 2. Marca como plan='family_12m', status='active'
