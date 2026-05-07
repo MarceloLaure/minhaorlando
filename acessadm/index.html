@@ -259,15 +259,16 @@ async function checkAuth() {
     whoBox.style.display = 'none';
     return;
   }
-  // Validate user is admin
+  // Validate user is admin (case-insensitive match)
   const email = session.user.email.toLowerCase();
   const { data: adm } = await supa
     .from('allowed_users')
-    .select('role, status')
-    .eq('email', email)
+    .select('role, status, email')
+    .ilike('email', email)
+    .limit(1)
     .maybeSingle();
   if (!adm || adm.role !== 'admin' || adm.status !== 'active') {
-    showMsg('Sua conta não tem mais permissão de admin.', 'err');
+    showMsg('Sua conta não tem permissão de admin (' + email + ').', 'err');
     await supa.auth.signOut();
     return;
   }
