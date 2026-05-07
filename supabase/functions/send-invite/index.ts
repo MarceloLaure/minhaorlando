@@ -86,6 +86,11 @@ serve(async (req) => {
   if (!family) return jsonError(404, "Sua familia nao foi encontrada. Voce precisa ter uma assinatura ativa.");
   if (family.status !== "active") return jsonError(403, "Sua familia nao esta ativa.");
   if (!family.invite_code) return jsonError(500, "Codigo de convite ausente — contate suporte.");
+  // So permite convite vindo de familias com plano family_* (anfitriao pagante)
+  // Familias guest_* nao podem convidar (sao convidadas elas mesmas)
+  if (!family.plan || !family.plan.startsWith("family_")) {
+    return jsonError(403, "Familias convidadas nao podem enviar convites. Apenas o anfitriao da viagem convida.");
+  }
 
   // Verifica se ja existe family link pra esse email (familia ja vinculada)
   const { data: existingGuest } = await supa
