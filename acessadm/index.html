@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Minha Orlando</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/app/icon-192.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0B1B3A; --bg-2:#0a142a; --surface:#11213f; --surface-2:#16284a;
+      --border:#1f3458; --text:#F8FAFC; --text-dim:#B8C2D9; --text-faint:#7B88A8;
+      --gold:#FCD34D; --gold-deep:#F59E0B; --green:#22C55E; --red:#EF4444;
+      --blue:#3B82F6; --purple:#A78BFA; --pink:#F472B6;
+    }
+    html,body{min-height:100%;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    button{font-family:inherit;cursor:pointer;border:none}
+    input,select{font-family:inherit;outline:none}
+    a{color:var(--gold);text-decoration:none}
+
+    /* === LAYOUT === */
+    .app{min-height:100vh;display:flex;flex-direction:column}
+    header{background:var(--bg-2);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:16px;letter-spacing:-.3px}
+    .logo img{width:32px;height:32px;border-radius:8px}
+    .logo .sub{font-size:11px;color:var(--text-faint);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-left:4px}
+    .who{margin-left:auto;font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:10px}
+    .who button{padding:6px 12px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:12px;font-weight:700}
+    .who button:hover{background:var(--surface);color:var(--text)}
+
+    /* === LOGIN === */
+    .login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+    .login-card{width:100%;max-width:380px;padding:36px 30px;border-radius:24px;background:var(--surface);border:1px solid var(--border);box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+    .login-icon{width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold-deep));display:grid;place-items:center;font-size:26px;color:#0B1B3A;margin-bottom:18px}
+    .login-card h1{font-size:24px;font-weight:900;margin-bottom:8px;letter-spacing:-.5px}
+    .login-card p{color:var(--text-dim);font-size:14px;line-height:1.5;margin-bottom:22px}
+    .login-card label{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px}
+    .login-card input{width:100%;padding:14px 16px;border-radius:12px;background:var(--bg-2);border:1px solid var(--border);color:var(--text);font-size:14px;margin-bottom:14px}
+    .login-card input:focus{border-color:var(--gold)}
+    .login-card button{width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:#0B1B3A;font-weight:800;font-size:14px;letter-spacing:.02em;box-shadow:0 8px 24px -8px rgba(252,211,77,.5)}
+    .login-card button:disabled{opacity:.6;cursor:wait}
+    .login-msg{margin-top:14px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.45}
+    .login-msg.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86EFAC}
+    .login-msg.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#FCA5A5}
+
+    /* === MAIN === */
+    main{flex:1;padding:20px;max-width:1280px;margin:0 auto;width:100%}
+    .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{padding:12px 18px;background:transparent;color:var(--text-faint);font-weight:700;font-size:13px;letter-spacing:.02em;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+    .tab:hover{color:var(--text-dim)}
+    .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+    .tab .badge{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--surface);color:var(--text-dim);font-size:11px;font-weight:800;min-width:22px;text-align:center}
+    .tab.active .badge{background:rgba(252,211,77,.18);color:var(--gold)}
+
+    /* === KPIs === */
+    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+    .kpi{padding:18px 20px;border-radius:16px;background:var(--surface);border:1px solid var(--border);position:relative;overflow:hidden}
+    .kpi-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px}
+    .kpi-value{font-size:28px;font-weight:900;letter-spacing:-.5px;line-height:1}
+    .kpi-sub{font-size:12px;color:var(--text-dim);margin-top:6px}
+
+    /* === TOOLBAR === */
+    .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px}
+    .toolbar input,.toolbar select{padding:9px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px}
+    .toolbar input{flex:1;min-width:200px}
+    .toolbar button{padding:9px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:700}
+    .toolbar button:hover{background:var(--surface-2)}
+    .toolbar button.primary{background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:#0B1B3A;border:none;font-weight:800}
+
+    /* === TABLE === */
+    .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{text-align:left;padding:12px 16px;background:var(--bg-2);color:var(--text-faint);font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);position:sticky;top:0}
+    td{padding:14px 16px;color:var(--text-dim);border-bottom:1px solid var(--border)}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr:hover{background:var(--bg-2)}
+    td.email{color:var(--text);font-weight:600}
+    td.muted{color:var(--text-faint);font-size:12px}
+    .badge-pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.04em}
+    .badge-pill.b-green{background:rgba(34,197,94,.16);color:#86EFAC}
+    .badge-pill.b-blue{background:rgba(59,130,246,.16);color:#93C5FD}
+    .badge-pill.b-yellow{background:rgba(252,211,77,.16);color:var(--gold)}
+    .badge-pill.b-red{background:rgba(239,68,68,.16);color:#FCA5A5}
+    .badge-pill.b-purple{background:rgba(167,139,250,.18);color:#C4B5FD}
+    .empty{padding:60px 20px;text-align:center;color:var(--text-faint)}
+    .empty .icon{font-size:42px;margin-bottom:12px;opacity:.5}
+    .placeholder{padding:80px 20px;text-align:center;color:var(--text-faint);background:var(--surface);border:1px dashed var(--border);border-radius:16px}
+    .placeholder .icon{font-size:48px;margin-bottom:14px;opacity:.4}
+    .placeholder h3{color:var(--text-dim);font-size:18px;margin-bottom:6px}
+    .placeholder p{font-size:13px;line-height:1.5;max-width:340px;margin:0 auto}
+
+    /* === LOADING === */
+    .spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* === MOBILE === */
+    @media(max-width:640px){
+      header{padding:12px 16px}
+      main{padding:14px}
+      .kpi-value{font-size:24px}
+      table{font-size:12px}
+      th,td{padding:10px 12px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <img src="/app/icon-192.png" alt="Minha Orlando">
+      <span>Minha Orlando<span class="sub">· Admin</span></span>
+    </div>
+    <div class="who" id="who" style="display:none">
+      <span id="whoEmail"></span>
+      <button id="logout">Sair</button>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <div class="login-wrap" id="loginWrap">
+    <div class="login-card">
+      <div class="login-icon">🔐</div>
+      <h1>Acesso administrativo</h1>
+      <p>Digite o email cadastrado como admin. Te mando um link mágico pra entrar.</p>
+      <form id="loginForm">
+        <label for="loginEmail">Email do admin</label>
+        <input type="email" id="loginEmail" placeholder="voce@email.com" required autocomplete="email">
+        <button type="submit" id="loginBtn">Enviar link mágico →</button>
+      </form>
+      <div id="loginMsg"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <main id="adminMain" style="display:none">
+    <div class="tabs">
+      <button class="tab active" data-tab="waitlist">Fila de espera <span class="badge" id="badgeWaitlist">…</span></button>
+      <button class="tab" data-tab="subscriptions">Assinaturas <span class="badge" id="badgeSubs">…</span></button>
+      <button class="tab" data-tab="orders">Pedidos Kiwify <span class="badge" id="badgeOrders">…</span></button>
+    </div>
+
+    <!-- TAB: WAITLIST -->
+    <div class="tab-pane" id="paneWaitlist">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Total na fila</div><div class="kpi-value" id="kpiTotal">—</div></div>
+        <div class="kpi"><div class="kpi-label">Últimos 7 dias</div><div class="kpi-value" id="kpiWeek">—</div></div>
+        <div class="kpi"><div class="kpi-label">Últimas 24h</div><div class="kpi-value" id="kpiDay">—</div></div>
+        <div class="kpi"><div class="kpi-label">Top mês de viagem</div><div class="kpi-value" id="kpiTopMonth" style="font-size:18px">—</div></div>
+      </div>
+
+      <div class="toolbar">
+        <input type="search" id="searchInput" placeholder="Buscar por email...">
+        <select id="filterMonth">
+          <option value="">Todos os meses</option>
+        </select>
+        <button id="refreshBtn">↻ Atualizar</button>
+        <button id="exportBtn" class="primary">⬇ Exportar CSV</button>
+      </div>
+
+      <div class="table-wrap" id="tableWrap">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <!-- TAB: SUBSCRIPTIONS -->
+    <div class="tab-pane" id="paneSubscriptions" style="display:none">
+      <div class="placeholder">
+        <div class="icon">🚧</div>
+        <h3>Em breve</h3>
+        <p>Lista de famílias com status de pagamento, datas da viagem, plano (3m/6m/12m), e botões de ação (estender, revogar). Ainda não construído.</p>
+      </div>
+    </div>
+
+    <!-- TAB: ORDERS -->
+    <div class="tab-pane" id="paneOrders" style="display:none">
+      <div class="placeholder">
+        <div class="icon">🚧</div>
+        <h3>Em breve</h3>
+        <p>Log bruto da tabela kiwify_orders pra debug. Útil quando cliente reclama "paguei e não liberou".</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+
+// ============================================================
+// CONFIG
+// ============================================================
+const SUPA_URL = 'https://ujnazpcffceuyctnnoip.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbmF6cGNmZmNldXljdG5ub2lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTAzMjIsImV4cCI6MjA5MzQyNjMyMn0.mEKfsco6wQNhqVFfrERR5qwS9GbYdUYEfygxwWKSg6I';
+
+const supa = createClient(SUPA_URL, SUPA_KEY, {
+  auth: { persistSession: true, storageKey: 'sb-acessadm-auth' },
+});
+
+// ============================================================
+// AUTH
+// ============================================================
+const loginWrap = document.getElementById('loginWrap');
+const adminMain = document.getElementById('adminMain');
+const whoBox = document.getElementById('who');
+const whoEmail = document.getElementById('whoEmail');
+const loginForm = document.getElementById('loginForm');
+const loginBtn = document.getElementById('loginBtn');
+const loginMsg = document.getElementById('loginMsg');
+
+function showMsg(text, type = 'ok') {
+  loginMsg.className = 'login-msg ' + type;
+  loginMsg.textContent = text;
+}
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  loginMsg.textContent = '';
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Enviando...';
+  try {
+    // Pre-valida via RPC (security definer — não vaza a lista de admins)
+    const { data: isAdmin, error: rpcErr } = await supa.rpc('is_admin_email', { p_email: email });
+    if (rpcErr) throw rpcErr;
+    if (!isAdmin) {
+      showMsg('Email não autorizado como admin. Fale com outro admin se precisar de acesso.', 'err');
+      return;
+    }
+
+    const { error } = await supa.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + '/acessadm/' },
+    });
+    if (error) throw error;
+    showMsg('Link mágico enviado! Confere seu email (incluindo spam).', 'ok');
+  } catch (err) {
+    showMsg('Erro: ' + (err.message || err), 'err');
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Enviar link mágico →';
+  }
+});
+
+document.getElementById('logout').addEventListener('click', async () => {
+  await supa.auth.signOut();
+  location.reload();
+});
+
+async function checkAuth() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session) {
+    loginWrap.style.display = 'flex';
+    adminMain.style.display = 'none';
+    whoBox.style.display = 'none';
+    return;
+  }
+  // Validate user is admin
+  const email = session.user.email.toLowerCase();
+  const { data: adm } = await supa
+    .from('allowed_users')
+    .select('role, status')
+    .eq('email', email)
+    .maybeSingle();
+  if (!adm || adm.role !== 'admin' || adm.status !== 'active') {
+    showMsg('Sua conta não tem mais permissão de admin.', 'err');
+    await supa.auth.signOut();
+    return;
+  }
+  loginWrap.style.display = 'none';
+  adminMain.style.display = 'block';
+  whoBox.style.display = 'flex';
+  whoEmail.textContent = email;
+  loadWaitlist();
+}
+
+// Listen to auth changes (after magic link click)
+supa.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+    checkAuth();
+  }
+});
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('pane' + tab[0].toUpperCase() + tab.slice(1)).style.display = 'block';
+  });
+});
+
+// ============================================================
+// WAITLIST
+// ============================================================
+let waitlistData = [];
+
+const tableWrap = document.getElementById('tableWrap');
+const searchInput = document.getElementById('searchInput');
+const filterMonth = document.getElementById('filterMonth');
+const refreshBtn = document.getElementById('refreshBtn');
+const exportBtn = document.getElementById('exportBtn');
+
+async function loadWaitlist() {
+  tableWrap.innerHTML = '<div class="spinner"></div>';
+  try {
+    const { data, error } = await supa
+      .from('waitlist')
+      .select('id, email, trip_date, source, created_at, referrer')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    waitlistData = data || [];
+    populateMonthFilter();
+    updateKPIs();
+    renderTable();
+    document.getElementById('badgeWaitlist').textContent = waitlistData.length;
+  } catch (err) {
+    tableWrap.innerHTML = '<div class="empty"><div class="icon">⚠</div><div>Erro: ' + (err.message || err) + '</div></div>';
+  }
+}
+
+function populateMonthFilter() {
+  const months = new Set();
+  waitlistData.forEach(r => {
+    if (r.trip_date) months.add(r.trip_date.slice(0, 7));
+  });
+  const sorted = Array.from(months).sort();
+  filterMonth.innerHTML = '<option value="">Todos os meses</option>'
+    + sorted.map(m => `<option value="${m}">${formatMonthLong(m)}</option>`).join('');
+}
+
+function updateKPIs() {
+  document.getElementById('kpiTotal').textContent = waitlistData.length;
+
+  const now = Date.now();
+  const day = waitlistData.filter(r => now - new Date(r.created_at).getTime() < 86400e3).length;
+  const week = waitlistData.filter(r => now - new Date(r.created_at).getTime() < 7 * 86400e3).length;
+  document.getElementById('kpiDay').textContent = day;
+  document.getElementById('kpiWeek').textContent = week;
+
+  // Top mês
+  const monthCount = {};
+  waitlistData.forEach(r => {
+    if (!r.trip_date) return;
+    const m = r.trip_date.slice(0, 7);
+    monthCount[m] = (monthCount[m] || 0) + 1;
+  });
+  const top = Object.entries(monthCount).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById('kpiTopMonth').textContent = top
+    ? formatMonthShort(top[0]) + ' (' + top[1] + ')'
+    : '—';
+}
+
+function getFiltered() {
+  const q = searchInput.value.trim().toLowerCase();
+  const m = filterMonth.value;
+  return waitlistData.filter(r => {
+    if (q && !(r.email || '').toLowerCase().includes(q)) return false;
+    if (m && (!r.trip_date || !r.trip_date.startsWith(m))) return false;
+    return true;
+  });
+}
+
+function renderTable() {
+  const rows = getFiltered();
+  if (rows.length === 0) {
+    tableWrap.innerHTML = '<div class="empty"><div class="icon">📭</div><div>Nenhum email na fila ainda.</div></div>';
+    return;
+  }
+  const html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Mês da viagem</th>
+          <th>Inscrito em</th>
+          <th>Origem</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td class="email">${escapeHtml(r.email || '')}</td>
+            <td>${r.trip_date ? formatMonthLong(r.trip_date.slice(0, 7)) : '<span class="muted">—</span>'}</td>
+            <td class="muted" title="${escapeHtml(r.created_at)}">${formatRelative(r.created_at)}</td>
+            <td><span class="badge-pill b-blue">${escapeHtml(r.source || 'landing')}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  tableWrap.innerHTML = html;
+}
+
+function exportCSV() {
+  const rows = getFiltered();
+  if (rows.length === 0) return alert('Nada pra exportar (filtro vazio).');
+  const headers = ['email', 'trip_date', 'created_at', 'source', 'referrer'];
+  const csv = [
+    headers.join(','),
+    ...rows.map(r => headers.map(h => csvEscape(r[h] || '')).join(','))
+  ].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'minha-orlando-waitlist-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+searchInput.addEventListener('input', renderTable);
+filterMonth.addEventListener('change', renderTable);
+refreshBtn.addEventListener('click', loadWaitlist);
+exportBtn.addEventListener('click', exportCSV);
+
+// ============================================================
+// HELPERS
+// ============================================================
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function csvEscape(s) {
+  const v = String(s);
+  if (/[",\n]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+  return v;
+}
+function formatMonthLong(ym) {
+  if (!ym || ym.length < 7) return ym;
+  const [y, m] = ym.split('-');
+  const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return months[parseInt(m, 10) - 1] + '/' + y;
+}
+function formatMonthShort(ym) {
+  if (!ym || ym.length < 7) return ym;
+  const [y, m] = ym.split('-');
+  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return months[parseInt(m, 10) - 1] + '/' + y.slice(2);
+}
+function formatRelative(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'agora';
+  if (min < 60) return 'há ' + min + ' min';
+  const h = Math.floor(min / 60);
+  if (h < 24) return 'há ' + h + 'h';
+  const d = Math.floor(h / 24);
+  if (d < 7) return 'há ' + d + 'd';
+  const w = Math.floor(d / 7);
+  if (w < 4) return 'há ' + w + 'sem';
+  return new Date(iso).toLocaleDateString('pt-BR');
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+checkAuth();
+</script>
+</body>
+</html>
