@@ -721,6 +721,23 @@ footer {
 }
 .foot-inner a { color: var(--text-dim); }
 .foot-inner a:hover { color: var(--text); }
+.foot-verse {
+  max-width: var(--maxw); margin: 32px auto 0;
+  padding: 24px 0 0; border-top: 1px solid var(--border);
+  text-align: center;
+}
+.foot-verse-text {
+  font-family: 'Fraunces', serif;
+  font-style: italic; font-size: 14px; line-height: 1.7;
+  color: var(--text-dim); max-width: 640px; margin: 0 auto 10px;
+  background: linear-gradient(90deg, var(--gold), var(--pink), var(--purple));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  opacity: 0.85;
+}
+.foot-verse-ref {
+  font-size: 11px; color: var(--text-faint); font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase; margin: 0;
+}
 
 /* ============================================================
    TWEAKS PANEL (vanilla)
@@ -1313,11 +1330,19 @@ footer {
 <footer>
   <div class="foot-inner">
     <div>© 2026 Minha Orlando · feito por uma família, pra famílias</div>
-    <div style="display:flex; gap:18px;">
+    <div style="display:flex; gap:18px; flex-wrap:wrap;">
       <a href="mailto:contato@minhaorlando.com.br">contato@minhaorlando.com.br</a>
       <a href="#">Privacidade</a>
       <a href="#">Termos</a>
     </div>
+  </div>
+  <div class="foot-verse" aria-label="Versículo bíblico">
+    <p class="foot-verse-text">
+      "Tudo o que fizerem, façam de todo o coração, como para o Senhor, não para os homens,
+      sabendo que receberão do Senhor a recompensa da herança, pois é a Cristo, o Senhor,
+      a quem vocês servem."
+    </p>
+    <p class="foot-verse-ref">— Colossenses 3:23 ✝</p>
   </div>
 </footer>
 
