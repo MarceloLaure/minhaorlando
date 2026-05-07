@@ -103,6 +103,24 @@
     #toast.ok{border-color:rgba(34,197,94,.4)}
     #toast.err{border-color:rgba(239,68,68,.4);color:#FCA5A5}
     @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    /* === Aba Clientes === */
+    .fam-group{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden}
+    .fam-head{padding:14px 18px;background:var(--bg-2);display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+    .fam-head .crown{font-size:14px}
+    .fam-name{font-weight:800;font-size:15px;color:var(--text)}
+    .fam-meta{font-size:12px;color:var(--text-faint);display:flex;gap:14px;flex-wrap:wrap}
+    .fam-meta b{color:var(--text-dim);font-weight:700}
+    .mem-table{width:100%;border-collapse:collapse;font-size:13px}
+    .mem-table th{padding:8px 16px;background:transparent;color:var(--text-faint);font-weight:800;font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+    .mem-table td{padding:10px 16px;color:var(--text-dim);border-bottom:1px solid var(--border)}
+    .mem-table tbody tr:last-child td{border-bottom:none}
+    .mem-table tbody tr:hover{background:var(--bg-2)}
+    .mem-name{color:var(--text);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+    .toggle-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;cursor:pointer;border:1px solid;transition:all .12s;user-select:none}
+    .toggle-pill.on{background:rgba(34,197,94,.15);color:#86EFAC;border-color:rgba(34,197,94,.4)}
+    .toggle-pill.off{background:rgba(255,255,255,.05);color:var(--text-faint);border-color:var(--border)}
+    .toggle-pill:hover{transform:translateY(-1px)}
     .empty{padding:60px 20px;text-align:center;color:var(--text-faint)}
     .empty .icon{font-size:42px;margin-bottom:12px;opacity:.5}
     .placeholder{padding:80px 20px;text-align:center;color:var(--text-faint);background:var(--surface);border:1px dashed var(--border);border-radius:16px}
@@ -159,6 +177,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="waitlist">Fila de espera <span class="badge" id="badgeWaitlist">…</span></button>
       <button class="tab" data-tab="subscriptions">Assinaturas <span class="badge" id="badgeSubs">…</span></button>
+      <button class="tab" data-tab="customers">Clientes <span class="badge" id="badgeCustomers">…</span></button>
       <button class="tab" data-tab="orders">Pedidos Kiwify <span class="badge" id="badgeOrders">…</span></button>
     </div>
 
@@ -216,6 +235,32 @@
       </div>
 
       <div class="table-wrap" id="subsTableWrap"><div class="spinner"></div></div>
+    </div>
+
+    <!-- TAB: CUSTOMERS (membros de todas as familias) -->
+    <div class="tab-pane" id="paneCustomers" style="display:none">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Total membros</div><div class="kpi-value" id="kpiCustTotal">—</div></div>
+        <div class="kpi"><div class="kpi-label">👤 Adultos</div><div class="kpi-value" id="kpiCustAdults">—</div></div>
+        <div class="kpi"><div class="kpi-label">👶 Crianças</div><div class="kpi-value" id="kpiCustChildren">—</div></div>
+        <div class="kpi"><div class="kpi-label">✏️ Editam plano</div><div class="kpi-value" id="kpiCustEdit">—</div></div>
+      </div>
+
+      <div class="toolbar">
+        <input type="search" id="custSearch" placeholder="Buscar por nome ou email...">
+        <select id="custFilterFamily"><option value="">Todas as famílias</option></select>
+        <select id="custFilterType">
+          <option value="">Todos</option>
+          <option value="adult">👤 Adultos</option>
+          <option value="child">👶 Crianças</option>
+        </select>
+        <button id="custRefresh">↻ Atualizar</button>
+        <button id="custExport" class="primary">⬇ CSV</button>
+      </div>
+
+      <div id="custContent">
+        <div class="spinner"></div>
+      </div>
     </div>
 
     <!-- TAB: ORDERS -->
@@ -356,6 +401,7 @@ document.querySelectorAll('.tab').forEach(btn => {
     // Lazy-load: so carrega quando clicar pela 1a vez
     if (tab === 'subscriptions' && subsData.length === 0) loadSubscriptions();
     if (tab === 'orders' && ordersData.length === 0) loadOrders();
+    if (tab === 'customers' && customersData.length === 0) loadCustomers();
   });
 });
 
@@ -573,7 +619,7 @@ function renderSubsTable() {
       <thead>
         <tr>
           <th>Família</th>
-          <th>Email do dono</th>
+          <th>Owner 👑</th>
           <th>Plano</th>
           <th>Pago em</th>
           <th>Acesso até</th>
@@ -589,8 +635,15 @@ function renderSubsTable() {
           const isActive = s.status === 'active';
           return `
             <tr>
-              <td class="email">${escapeHtml(s.name || '—')}</td>
-              <td>${escapeHtml(s.owner_email || '—')}</td>
+              <td class="email">
+                <span style="cursor:pointer" onclick="window.__renameFamily('${s.id}', '${escapeHtml(s.name || '')}')">${escapeHtml(s.name || '—')} <span style="opacity:.5">✏️</span></span>
+              </td>
+              <td>
+                <span style="display:inline-flex;align-items:center;gap:6px">
+                  <span style="font-size:14px">👑</span>
+                  ${escapeHtml(s.owner_email || '—')}
+                </span>
+              </td>
               <td><span class="badge-pill ${plan.badge}">${plan.label}</span></td>
               <td class="muted">${s.paid_at ? formatDateBR(s.paid_at) : '—'}</td>
               <td class="muted">${s.access_until ? formatDateBR(s.access_until) : '—'}</td>
@@ -698,6 +751,22 @@ window.__revokeFamily = async (id, email) => {
     loadSubscriptions();
   } catch (err) {
     showToast('Erro ao revogar: ' + err.message, 'err');
+  }
+};
+
+window.__renameFamily = async (id, currentName) => {
+  const newName = prompt('Novo nome da família:', currentName || '');
+  if (newName === null) return;
+  const trimmed = (newName || '').trim();
+  if (trimmed.length < 2) { showToast('Nome muito curto', 'err'); return; }
+  if (trimmed === currentName) return;
+  try {
+    const { error } = await supa.from('families').update({ name: trimmed }).eq('id', id);
+    if (error) throw error;
+    showToast('✓ Renomeado pra: ' + trimmed);
+    loadSubscriptions();
+  } catch (err) {
+    showToast('Erro ao renomear: ' + err.message, 'err');
   }
 };
 
@@ -837,6 +906,280 @@ function renderOrdersTable() {
 document.getElementById('ordersSearch').addEventListener('input', renderOrdersTable);
 document.getElementById('ordersFilterStatus').addEventListener('change', renderOrdersTable);
 document.getElementById('ordersRefresh').addEventListener('click', loadOrders);
+
+// ============================================================
+// CUSTOMERS (membros agrupados por familia)
+// ============================================================
+let customersData = []; // [{ family, members: [...] }]
+let allowedUsersMap = new Map(); // id -> email
+
+const ADULT_AGE = 10; // Disney standard: 10+ = adulto
+
+function isMemberChild(m) {
+  if (typeof m.is_child === 'boolean') return m.is_child;
+  if (typeof m.age === 'number') return m.age < ADULT_AGE;
+  return false;
+}
+
+async function loadCustomers() {
+  const wrap = document.getElementById('custContent');
+  wrap.innerHTML = '<div class="spinner"></div>';
+  try {
+    const [members, families, users] = await Promise.all([
+      supa.from('family_members')
+        .select('id, family_id, name, age, height, role, avatar, color, photo_url, restrictions, auth_user_id, can_edit_plan, is_child, created_at')
+        .order('age', { ascending: false, nullsFirst: false }),
+      supa.from('families')
+        .select('id, name, owner_email, plan, status, access_until, invite_code')
+        .order('name'),
+      supa.from('allowed_users').select('id, email'),
+    ]);
+    if (members.error) throw members.error;
+    if (families.error) throw families.error;
+    if (users.error) throw users.error;
+
+    allowedUsersMap = new Map((users.data || []).map(u => [u.id, u.email]));
+
+    // Agrupa membros por familia
+    const groups = new Map();
+    (families.data || []).forEach(f => {
+      groups.set(f.id, { family: f, members: [] });
+    });
+    (members.data || []).forEach(m => {
+      const g = groups.get(m.family_id);
+      if (g) g.members.push(m);
+    });
+    customersData = Array.from(groups.values());
+
+    // Popula filtro de familia
+    const sel = document.getElementById('custFilterFamily');
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">Todas as famílias</option>'
+      + customersData.map(g => `<option value="${g.family.id}">${escapeHtml(g.family.name)}</option>`).join('');
+    sel.value = currentVal;
+
+    updateCustomersKPIs();
+    renderCustomers();
+    document.getElementById('badgeCustomers').textContent = (members.data || []).length;
+  } catch (err) {
+    wrap.innerHTML = '<div class="empty"><div class="icon">⚠</div><div>Erro: ' + escapeHtml(err.message || String(err)) + '</div></div>';
+  }
+}
+
+function updateCustomersKPIs() {
+  const allMembers = customersData.flatMap(g => g.members);
+  const total = allMembers.length;
+  const children = allMembers.filter(isMemberChild).length;
+  const adults = total - children;
+  const editing = allMembers.filter(m => m.can_edit_plan).length;
+  document.getElementById('kpiCustTotal').textContent = total;
+  document.getElementById('kpiCustAdults').textContent = adults;
+  document.getElementById('kpiCustChildren').textContent = children;
+  document.getElementById('kpiCustEdit').textContent = editing;
+}
+
+function getCustomersFiltered() {
+  const q = document.getElementById('custSearch').value.trim().toLowerCase();
+  const famId = document.getElementById('custFilterFamily').value;
+  const type = document.getElementById('custFilterType').value;
+
+  return customersData
+    .filter(g => !famId || g.family.id === famId)
+    .map(g => ({
+      family: g.family,
+      members: g.members.filter(m => {
+        if (type === 'adult' && isMemberChild(m)) return false;
+        if (type === 'child' && !isMemberChild(m)) return false;
+        if (q) {
+          const email = allowedUsersMap.get(m.auth_user_id) || '';
+          const inName = (m.name || '').toLowerCase().includes(q);
+          const inEmail = email.toLowerCase().includes(q);
+          if (!inName && !inEmail) return false;
+        }
+        return true;
+      }),
+    }))
+    .filter(g => g.members.length > 0);
+}
+
+function renderCustomers() {
+  const groups = getCustomersFiltered();
+  const wrap = document.getElementById('custContent');
+  if (groups.length === 0) {
+    wrap.innerHTML = '<div class="empty"><div class="icon">👥</div><div>Nenhum membro encontrado.<br><span style="font-size:12px">Conforme as famílias adicionarem pessoas no app, elas aparecem aqui.</span></div></div>';
+    return;
+  }
+  wrap.innerHTML = groups.map(g => {
+    const ownerEmail = (g.family.owner_email || '').toLowerCase();
+    return `
+      <div class="fam-group">
+        <div class="fam-head">
+          <span class="crown">👑</span>
+          <div class="fam-name">${escapeHtml(g.family.name || 'Família')}</div>
+          <div class="fam-meta">
+            <span><b>${escapeHtml(g.family.owner_email || '—')}</b></span>
+            <span>${g.members.length} ${g.members.length === 1 ? 'pessoa' : 'pessoas'}</span>
+            ${g.family.plan ? `<span><b>${PLAN_INFO[g.family.plan]?.label || g.family.plan}</b></span>` : ''}
+            ${g.family.status ? `<span><b>${STATUS_INFO[g.family.status]?.label || g.family.status}</b></span>` : ''}
+          </div>
+        </div>
+        <table class="mem-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>Idade</th>
+              <th>Tipo</th>
+              <th>Altura</th>
+              <th>Edita plano?</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${g.members.map(m => {
+              const email = allowedUsersMap.get(m.auth_user_id) || '';
+              const isOwner = email && email.toLowerCase() === ownerEmail;
+              const isChild = isMemberChild(m);
+              const canEdit = !!m.can_edit_plan;
+              return `
+                <tr>
+                  <td>
+                    <span class="mem-name">
+                      <span style="font-size:14px">${escapeHtml(m.avatar || '👤')}</span>
+                      ${escapeHtml(m.name || '—')}
+                      ${isOwner ? '<span title="Dono da família" style="font-size:13px">👑</span>' : ''}
+                    </span>
+                  </td>
+                  <td class="muted">${escapeHtml(email || '—')}</td>
+                  <td>${m.age != null ? m.age + ' anos' : '<span class="muted">—</span>'}</td>
+                  <td>
+                    <span class="badge-pill ${isChild ? 'b-yellow' : 'b-blue'}">
+                      ${isChild ? '👶 Criança' : '👤 Adulto'}
+                    </span>
+                    ${m.is_child !== null && m.is_child !== undefined ? '<span title="Override manual" style="font-size:9px;color:var(--text-faint)"> (manual)</span>' : ''}
+                  </td>
+                  <td class="muted">${m.height ? m.height + ' cm' : '—'}</td>
+                  <td>
+                    <span class="toggle-pill ${canEdit ? 'on' : 'off'}"
+                          onclick="window.__toggleEditPlan('${m.id}', ${!canEdit})">
+                      ${canEdit ? '✓ Sim' : '✕ Não'}
+                    </span>
+                  </td>
+                  <td>
+                    <button class="row-btn" onclick="window.__editMember('${m.id}')">✏️ Editar</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+}
+
+window.__toggleEditPlan = async (memberId, newVal) => {
+  try {
+    const { error } = await supa.from('family_members').update({ can_edit_plan: newVal }).eq('id', memberId);
+    if (error) throw error;
+    showToast(newVal ? '✓ Permissão de editar plano LIBERADA' : '✓ Permissão de editar plano REMOVIDA');
+    loadCustomers();
+  } catch (err) {
+    showToast('Erro: ' + err.message, 'err');
+  }
+};
+
+window.__editMember = async (memberId) => {
+  // Acha o membro
+  let member = null;
+  for (const g of customersData) {
+    member = g.members.find(m => m.id === memberId);
+    if (member) break;
+  }
+  if (!member) return;
+
+  const newName = prompt('Nome:', member.name || '');
+  if (newName === null) return;
+  const newAgeStr = prompt('Idade (em anos):', member.age != null ? String(member.age) : '');
+  if (newAgeStr === null) return;
+  const newAge = newAgeStr.trim() ? parseInt(newAgeStr, 10) : null;
+  if (newAge != null && (!Number.isFinite(newAge) || newAge < 0 || newAge > 120)) {
+    showToast('Idade inválida', 'err');
+    return;
+  }
+  const overrideStr = prompt(
+    'Override manual de tipo?\n' +
+    '  "criança" / "adulto" / vazio = automático pela idade (<10 = criança)',
+    member.is_child === true ? 'criança' : member.is_child === false ? 'adulto' : ''
+  );
+  if (overrideStr === null) return;
+  let isChild = null;
+  const ov = overrideStr.trim().toLowerCase();
+  if (ov.startsWith('crian')) isChild = true;
+  else if (ov.startsWith('adult')) isChild = false;
+
+  const newHeightStr = prompt('Altura em cm (vazio pra não alterar):', member.height != null ? String(member.height) : '');
+  if (newHeightStr === null) return;
+  let newHeight = member.height;
+  if (newHeightStr.trim() !== '') {
+    const h = parseInt(newHeightStr, 10);
+    if (!Number.isFinite(h) || h < 30 || h > 250) {
+      showToast('Altura inválida (30-250 cm)', 'err');
+      return;
+    }
+    newHeight = h;
+  }
+
+  try {
+    const { error } = await supa.from('family_members').update({
+      name: (newName || '').trim() || member.name,
+      age: newAge,
+      is_child: isChild,
+      height: newHeight,
+    }).eq('id', memberId);
+    if (error) throw error;
+    showToast('✓ Membro atualizado');
+    loadCustomers();
+  } catch (err) {
+    showToast('Erro: ' + err.message, 'err');
+  }
+};
+
+function exportCustomersCSV() {
+  const groups = getCustomersFiltered();
+  const rows = [['familia', 'owner', 'nome', 'email', 'idade', 'tipo', 'altura_cm', 'edita_plano', 'role']];
+  groups.forEach(g => {
+    g.members.forEach(m => {
+      const email = allowedUsersMap.get(m.auth_user_id) || '';
+      rows.push([
+        g.family.name || '',
+        g.family.owner_email || '',
+        m.name || '',
+        email,
+        m.age != null ? m.age : '',
+        isMemberChild(m) ? 'crianca' : 'adulto',
+        m.height || '',
+        m.can_edit_plan ? 'sim' : 'nao',
+        m.role || '',
+      ]);
+    });
+  });
+  if (rows.length === 1) return alert('Nada pra exportar.');
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'minha-orlando-clientes-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('custSearch').addEventListener('input', renderCustomers);
+document.getElementById('custFilterFamily').addEventListener('change', renderCustomers);
+document.getElementById('custFilterType').addEventListener('change', renderCustomers);
+document.getElementById('custRefresh').addEventListener('click', loadCustomers);
+document.getElementById('custExport').addEventListener('click', exportCustomersCSV);
 
 // ============================================================
 // HELPERS
