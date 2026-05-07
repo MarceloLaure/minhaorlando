@@ -1,0 +1,57 @@
+# Hostinger / Apache config — Minha Orlando
+
+# Forca HTTPS (Hostinger ja faz, mas garantia extra)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # /app sem barra → redireciona pra /app/ (pra resolver index.html corretamente)
+  RewriteRule ^app$ /app/ [L,R=301]
+</IfModule>
+
+# Cache: HTML e service worker NUNCA cacheia (browser sempre busca fresco).
+# Assets binarios (icones, png) ficam em cache 1 dia.
+<IfModule mod_headers.c>
+  # Service worker — CRITICO: nao pode cachear, senao update fica preso
+  <FilesMatch "service-worker\.js$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # HTML — sempre re-valida
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # config.js — pode mudar (chave Supabase, etc), nao cachear muito
+  <FilesMatch "^config\.js$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # Manifest — re-valida sempre
+  <FilesMatch "manifest\.json$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # Imagens (icones, pixie, castle) — 1 dia
+  <FilesMatch "\.(png|jpg|jpeg|gif|svg|ico|webp)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+</IfModule>
+
+# MIME types corretos
+<IfModule mod_mime.c>
+  AddType application/manifest+json .json
+  AddType application/javascript .js
+  AddType image/svg+xml .svg
+</IfModule>
+
+# Compressao gzip
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# Pagina de erro 404 → manda pra raiz (landing page futura)
+ErrorDocument 404 /index.html

@@ -1,18 +1,18 @@
 // Service Worker - Minha Orlando PWA
 // Versão do cache - mude esse número quando atualizar arquivos
-const CACHE_VERSION = 'v90';
+const CACHE_VERSION = 'v95';
 const CACHE_NAME = `minha-orlando-${CACHE_VERSION}`;
 
 // Arquivos do "app shell" - cacheados na instalação
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/config.js',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/pixie.png',
-  '/castle.png'
+  '/app/',
+  '/app/index.html',
+  '/app/config.js',
+  '/app/manifest.json',
+  '/app/icon-192.png',
+  '/app/icon-512.png',
+  '/app/pixie.png',
+  '/app/castle.png'
 ];
 
 // Domínios que NÃO devem ser cacheados (sempre buscar fresco da rede)
@@ -76,7 +76,7 @@ self.addEventListener('fetch', (event) => {
           }
           return resp;
         })
-        .catch(() => caches.match(event.request).then(r => r || caches.match('/index.html')))
+        .catch(() => caches.match(event.request).then(r => r || caches.match('/app/index.html')))
     );
     return;
   }
