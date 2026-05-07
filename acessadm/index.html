@@ -170,20 +170,60 @@
 
     <!-- TAB: SUBSCRIPTIONS -->
     <div class="tab-pane" id="paneSubscriptions" style="display:none">
-      <div class="placeholder">
-        <div class="icon">🚧</div>
-        <h3>Em breve</h3>
-        <p>Lista de famílias com status de pagamento, datas da viagem, plano (3m/6m/12m), e botões de ação (estender, revogar). Ainda não construído.</p>
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Faturado total</div><div class="kpi-value" id="kpiSubsRev">—</div></div>
+        <div class="kpi"><div class="kpi-label">Este mês</div><div class="kpi-value" id="kpiSubsRevMonth">—</div></div>
+        <div class="kpi"><div class="kpi-label">Famílias ativas</div><div class="kpi-value" id="kpiSubsActive">—</div></div>
+        <div class="kpi"><div class="kpi-label">Expirando em 7 dias</div><div class="kpi-value" id="kpiSubsExpiring">—</div></div>
       </div>
+
+      <div class="toolbar">
+        <input type="search" id="subsSearch" placeholder="Buscar por email...">
+        <select id="subsFilterStatus">
+          <option value="">Todos status</option>
+          <option value="active">🟢 Ativas</option>
+          <option value="pending">🟡 Pendentes</option>
+          <option value="expired">🔴 Expiradas</option>
+          <option value="refunded">⚫ Reembolsadas</option>
+          <option value="chargeback">⚫ Chargebacks</option>
+        </select>
+        <select id="subsFilterPlan">
+          <option value="">Todos planos</option>
+          <option value="family_3m">Pacote 3m</option>
+          <option value="family_6m">Pacote 6m</option>
+          <option value="family_12m">Pacote 12m</option>
+          <option value="guest_3m">Convidado 3m</option>
+          <option value="guest_6m_50off">Convidado 6m 50%</option>
+        </select>
+        <button id="subsRefresh">↻ Atualizar</button>
+      </div>
+
+      <div class="table-wrap" id="subsTableWrap"><div class="spinner"></div></div>
     </div>
 
     <!-- TAB: ORDERS -->
     <div class="tab-pane" id="paneOrders" style="display:none">
-      <div class="placeholder">
-        <div class="icon">🚧</div>
-        <h3>Em breve</h3>
-        <p>Log bruto da tabela kiwify_orders pra debug. Útil quando cliente reclama "paguei e não liberou".</p>
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Total pedidos</div><div class="kpi-value" id="kpiOrdersTotal">—</div></div>
+        <div class="kpi"><div class="kpi-label">Aprovados</div><div class="kpi-value" id="kpiOrdersApproved" style="color:#86EFAC">—</div></div>
+        <div class="kpi"><div class="kpi-label">Reembolsos/Chargebacks</div><div class="kpi-value" id="kpiOrdersRefund" style="color:#FCA5A5">—</div></div>
+        <div class="kpi"><div class="kpi-label">Faturamento bruto</div><div class="kpi-value" id="kpiOrdersRev">—</div></div>
       </div>
+
+      <div class="toolbar">
+        <input type="search" id="ordersSearch" placeholder="Buscar email ou order_id...">
+        <select id="ordersFilterStatus">
+          <option value="">Todos eventos</option>
+          <option value="order_approved">Aprovados</option>
+          <option value="order_refunded">Reembolsos</option>
+          <option value="chargeback">Chargebacks</option>
+          <option value="pix_created">PIX gerados</option>
+          <option value="boleto_created">Boletos gerados</option>
+        </select>
+        <button id="ordersRefresh">↻ Atualizar</button>
+      </div>
+
+      <div class="table-wrap" id="ordersTableWrap"><div class="spinner"></div></div>
     </div>
   </main>
 </div>
@@ -296,6 +336,9 @@ document.querySelectorAll('.tab').forEach(btn => {
     btn.classList.add('active');
     const tab = btn.dataset.tab;
     document.getElementById('pane' + tab[0].toUpperCase() + tab.slice(1)).style.display = 'block';
+    // Lazy-load: so carrega quando clicar pela 1a vez
+    if (tab === 'subscriptions' && subsData.length === 0) loadSubscriptions();
+    if (tab === 'orders' && ordersData.length === 0) loadOrders();
   });
 });
 
@@ -425,6 +468,227 @@ refreshBtn.addEventListener('click', loadWaitlist);
 exportBtn.addEventListener('click', exportCSV);
 
 // ============================================================
+// PLANOS / STATUS — referência compartilhada
+// ============================================================
+const PLAN_INFO = {
+  family_3m:       { label: 'Pacote 3m',       price: 111.40, badge: 'b-blue'   },
+  family_6m:       { label: 'Pacote 6m ⭐',     price: 165.10, badge: 'b-yellow' },
+  family_12m:      { label: 'Pacote 12m 🔥',   price: 272.50, badge: 'b-purple' },
+  guest_3m:        { label: 'Convidado 3m',    price:  53.70, badge: 'b-blue'   },
+  guest_6m_50off:  { label: 'Convidado 6m 50%',price:  53.70, badge: 'b-yellow' },
+};
+const STATUS_INFO = {
+  active:     { label: 'Ativa',        badge: 'b-green'  },
+  pending:    { label: 'Pendente',     badge: 'b-yellow' },
+  expired:    { label: 'Expirada',     badge: 'b-red'    },
+  refunded:   { label: 'Reembolsada',  badge: 'b-red'    },
+  chargeback: { label: 'Chargeback',   badge: 'b-red'    },
+};
+
+// ============================================================
+// SUBSCRIPTIONS (assinaturas / familias pagantes)
+// ============================================================
+let subsData = [];
+
+async function loadSubscriptions() {
+  const wrap = document.getElementById('subsTableWrap');
+  wrap.innerHTML = '<div class="spinner"></div>';
+  try {
+    const { data, error } = await supa
+      .from('families')
+      .select('id, name, owner_email, plan, paid_at, trip_start, access_until, status, kiwify_order_id, invite_code')
+      .not('plan', 'is', null)
+      .order('paid_at', { ascending: false });
+    if (error) throw error;
+    subsData = data || [];
+    updateSubsKPIs();
+    renderSubsTable();
+    document.getElementById('badgeSubs').textContent = subsData.length;
+  } catch (err) {
+    wrap.innerHTML = '<div class="empty"><div class="icon">⚠</div><div>Erro: ' + escapeHtml(err.message || String(err)) + '</div></div>';
+  }
+}
+
+function updateSubsKPIs() {
+  const today = new Date().toISOString().slice(0, 10);
+  const todayD = new Date(today + 'T00:00:00');
+  const active = subsData.filter(s => s.status === 'active' && (!s.access_until || s.access_until >= today));
+  const totalRev = subsData
+    .filter(s => s.status === 'active' || s.status === 'expired')
+    .reduce((sum, s) => sum + (PLAN_INFO[s.plan]?.price || 0), 0);
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const monthRev = subsData
+    .filter(s => s.paid_at && s.paid_at.startsWith(thisMonth) && s.status !== 'refunded' && s.status !== 'chargeback')
+    .reduce((sum, s) => sum + (PLAN_INFO[s.plan]?.price || 0), 0);
+  const expiring = subsData.filter(s => {
+    if (!s.access_until || s.status !== 'active') return false;
+    const exp = new Date(s.access_until + 'T00:00:00');
+    const diff = (exp - todayD) / 86400000;
+    return diff >= 0 && diff <= 7;
+  }).length;
+  document.getElementById('kpiSubsRev').textContent = formatBRL(totalRev);
+  document.getElementById('kpiSubsRevMonth').textContent = formatBRL(monthRev);
+  document.getElementById('kpiSubsActive').textContent = active.length;
+  document.getElementById('kpiSubsExpiring').textContent = expiring;
+}
+
+function getSubsFiltered() {
+  const q = document.getElementById('subsSearch').value.trim().toLowerCase();
+  const status = document.getElementById('subsFilterStatus').value;
+  const plan = document.getElementById('subsFilterPlan').value;
+  return subsData.filter(s => {
+    if (q && !((s.owner_email || '').toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q))) return false;
+    if (status && s.status !== status) return false;
+    if (plan && s.plan !== plan) return false;
+    return true;
+  });
+}
+
+function renderSubsTable() {
+  const rows = getSubsFiltered();
+  const wrap = document.getElementById('subsTableWrap');
+  if (rows.length === 0) {
+    wrap.innerHTML = '<div class="empty"><div class="icon">📦</div><div>Nenhuma assinatura ainda.<br><span style="font-size:12px">Conforme as compras chegarem na Kiwify, aparecem aqui automaticamente.</span></div></div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Família</th>
+          <th>Email do dono</th>
+          <th>Plano</th>
+          <th>Pago em</th>
+          <th>Acesso até</th>
+          <th>Status</th>
+          <th>Convite</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(s => {
+          const plan = PLAN_INFO[s.plan] || { label: s.plan, badge: 'b-blue' };
+          const status = STATUS_INFO[s.status] || { label: s.status, badge: 'b-blue' };
+          return `
+            <tr>
+              <td class="email">${escapeHtml(s.name || '—')}</td>
+              <td>${escapeHtml(s.owner_email || '—')}</td>
+              <td><span class="badge-pill ${plan.badge}">${plan.label}</span></td>
+              <td class="muted">${s.paid_at ? formatDateBR(s.paid_at) : '—'}</td>
+              <td class="muted">${s.access_until ? formatDateBR(s.access_until) : '—'}</td>
+              <td><span class="badge-pill ${status.badge}">${status.label}</span></td>
+              <td class="muted" style="font-family:monospace;font-size:12px">${s.invite_code || '—'}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('subsSearch').addEventListener('input', renderSubsTable);
+document.getElementById('subsFilterStatus').addEventListener('change', renderSubsTable);
+document.getElementById('subsFilterPlan').addEventListener('change', renderSubsTable);
+document.getElementById('subsRefresh').addEventListener('click', loadSubscriptions);
+
+// ============================================================
+// ORDERS (pedidos kiwify — audit log)
+// ============================================================
+let ordersData = [];
+const APPROVED_EVENTS = ['order_approved', 'order_paid', 'approved', 'paid'];
+const REFUND_EVENTS = ['order_refunded', 'refund', 'refunded', 'chargeback', 'order_chargeback'];
+
+async function loadOrders() {
+  const wrap = document.getElementById('ordersTableWrap');
+  wrap.innerHTML = '<div class="spinner"></div>';
+  try {
+    const { data, error } = await supa
+      .from('kiwify_orders')
+      .select('id, order_id, product_name, plan, buyer_email, buyer_name, amount_brl, invite_code, status, family_id, created_at, processed_at')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    ordersData = data || [];
+    updateOrdersKPIs();
+    renderOrdersTable();
+    document.getElementById('badgeOrders').textContent = ordersData.length;
+  } catch (err) {
+    wrap.innerHTML = '<div class="empty"><div class="icon">⚠</div><div>Erro: ' + escapeHtml(err.message || String(err)) + '</div></div>';
+  }
+}
+
+function updateOrdersKPIs() {
+  const total = ordersData.length;
+  const approved = ordersData.filter(o => APPROVED_EVENTS.includes(o.status));
+  const refunded = ordersData.filter(o => REFUND_EVENTS.includes(o.status));
+  const grossRev = approved.reduce((sum, o) => sum + (Number(o.amount_brl) || 0), 0);
+  document.getElementById('kpiOrdersTotal').textContent = total;
+  document.getElementById('kpiOrdersApproved').textContent = approved.length;
+  document.getElementById('kpiOrdersRefund').textContent = refunded.length;
+  document.getElementById('kpiOrdersRev').textContent = formatBRL(grossRev);
+}
+
+function getOrdersFiltered() {
+  const q = document.getElementById('ordersSearch').value.trim().toLowerCase();
+  const status = document.getElementById('ordersFilterStatus').value;
+  return ordersData.filter(o => {
+    if (q) {
+      const inEmail = (o.buyer_email || '').toLowerCase().includes(q);
+      const inOrder = (o.order_id || '').toLowerCase().includes(q);
+      if (!inEmail && !inOrder) return false;
+    }
+    if (status && o.status !== status) return false;
+    return true;
+  });
+}
+
+function renderOrdersTable() {
+  const rows = getOrdersFiltered();
+  const wrap = document.getElementById('ordersTableWrap');
+  if (rows.length === 0) {
+    wrap.innerHTML = '<div class="empty"><div class="icon">🧾</div><div>Nenhum pedido ainda.<br><span style="font-size:12px">Quando alguém pagar na Kiwify, o webhook grava aqui em tempo real.</span></div></div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Quando</th>
+          <th>Email</th>
+          <th>Produto</th>
+          <th>Valor</th>
+          <th>Evento</th>
+          <th>Convite</th>
+          <th>Order ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(o => {
+          const isApproved = APPROVED_EVENTS.includes(o.status);
+          const isRefund = REFUND_EVENTS.includes(o.status);
+          const badge = isApproved ? 'b-green' : isRefund ? 'b-red' : 'b-blue';
+          const plan = PLAN_INFO[o.plan];
+          return `
+            <tr>
+              <td class="muted" title="${escapeHtml(o.created_at || '')}">${formatRelative(o.created_at)}</td>
+              <td>${escapeHtml(o.buyer_email || '—')}</td>
+              <td>${plan ? plan.label : escapeHtml(o.product_name || '—')}</td>
+              <td>${o.amount_brl != null ? formatBRL(Number(o.amount_brl)) : '—'}</td>
+              <td><span class="badge-pill ${badge}">${escapeHtml(o.status || '—')}</span></td>
+              <td class="muted" style="font-family:monospace;font-size:12px">${escapeHtml(o.invite_code || '—')}</td>
+              <td class="muted" style="font-family:monospace;font-size:11px" title="${escapeHtml(o.order_id || '')}">${escapeHtml((o.order_id || '').slice(0, 12))}…</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('ordersSearch').addEventListener('input', renderOrdersTable);
+document.getElementById('ordersFilterStatus').addEventListener('change', renderOrdersTable);
+document.getElementById('ordersRefresh').addEventListener('click', loadOrders);
+
+// ============================================================
 // HELPERS
 // ============================================================
 function escapeHtml(s) {
@@ -460,6 +724,14 @@ function formatRelative(iso) {
   const w = Math.floor(d / 7);
   if (w < 4) return 'há ' + w + 'sem';
   return new Date(iso).toLocaleDateString('pt-BR');
+}
+function formatDateBR(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.length <= 10 ? iso + 'T00:00:00' : iso);
+  return d.toLocaleDateString('pt-BR');
+}
+function formatBRL(n) {
+  return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',');
 }
 
 // ============================================================
