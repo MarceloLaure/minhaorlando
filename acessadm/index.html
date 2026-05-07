@@ -1135,7 +1135,7 @@ async function loadCustomers() {
   try {
     const [members, families, users] = await Promise.all([
       supa.from('family_members')
-        .select('id, family_id, name, age, height, role, avatar, color, photo_url, restrictions, auth_user_id, can_edit_plan, is_child, created_at')
+        .select('id, family_id, name, subtitle, age, height, role, avatar, color, photo_url, restrictions, auth_user_id, can_edit_plan, is_child, created_at')
         .order('age', { ascending: false, nullsFirst: false }),
       supa.from('families')
         .select('id, name, owner_email, plan, status, access_until, invite_code')
@@ -1325,6 +1325,7 @@ function renderCustomers() {
                       ${isOwner ? '<span title="Dono da família" style="font-size:13px">👑</span>' : ''}
                       ${memberWarning}
                     </span>
+                    ${m.subtitle ? `<div style="font-size:11px;color:var(--gold);font-style:italic;margin-top:2px;font-weight:600">${escapeHtml(m.subtitle)}</div>` : ''}
                   </td>
                   <td class="muted">${escapeHtml(email || '—')}</td>
                   <td>${m.age != null ? m.age + ' anos' : '<span class="muted">—</span>'}</td>
