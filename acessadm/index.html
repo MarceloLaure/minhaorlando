@@ -1365,27 +1365,61 @@ function renderCustomers() {
 window.__mergeFamily = async (sourceId, sourceName, targetId, targetName, ownerEmail) => {
   const ok = await admConfirm(
     'Mesclar família vazia?',
-    'Owner: ' + ownerEmail + '\n\nVai fazer:\n• Mover allowed_users.family_id pra "' + targetName + '"\n• Excluir "' + sourceName + '" (vazia, duplicata)\n\nDepois disso, ' + ownerEmail + ' vai ver "' + targetName + '" quando logar no app.\nNão pode ser desfeito.',
+    'Owner: ' + ownerEmail + '\n\nVai fazer:\n• Transferir plano/invite_code da "' + sourceName + '" pra "' + targetName + '" (se a target nao tiver)\n• Mover allowed_users.family_id pra "' + targetName + '"\n• Excluir "' + sourceName + '" (vazia, duplicata)\n\nDepois disso, ' + ownerEmail + ' vai ver "' + targetName + '" com o plano correto.\nNão pode ser desfeito.',
     { icon: '🔄', okLabel: 'Sim, mesclar' }
   );
   if (!ok) return;
   try {
-    // 1. Move allowed_users vinculados a essa familia pra target
-    const { data: upData, error: upErr } = await supa
-      .from('allowed_users')
-      .update({ family_id: targetId })
-      .eq('family_id', sourceId)
-      .select();
-    if (upErr) throw upErr;
-    if (!upData || upData.length === 0) {
-      console.warn('[merge] no allowed_users updated — proceeding to delete anyway');
+    // 1. Le dados da source e target pra preservar plan/owner_email/etc
+    const { data: pair, error: pairErr } = await supa
+      .from('families')
+      .select('id, owner_email, plan, paid_at, trip_start, trip_end, access_until, status, kiwify_order_id, invite_code')
+      .in('id', [sourceId, targetId]);
+    if (pairErr) throw pairErr;
+    const source = pair.find(f => f.id === sourceId) || {};
+    const target = pair.find(f => f.id === targetId) || {};
+
+    // 2. Atualiza target com campos preservados (so se target nao tiver)
+    const patch = {};
+    if (!target.plan && source.plan) patch.plan = source.plan;
+    if (!target.paid_at && source.paid_at) patch.paid_at = source.paid_at;
+    if (!target.trip_start && source.trip_start) patch.trip_start = source.trip_start;
+    if (!target.trip_end && source.trip_end) patch.trip_end = source.trip_end;
+    if (!target.access_until && source.access_until) patch.access_until = source.access_until;
+    if (!target.status || target.status === 'pending') patch.status = source.status || 'active';
+    if (!target.owner_email && source.owner_email) patch.owner_email = source.owner_email;
+    if (!target.kiwify_order_id && source.kiwify_order_id) patch.kiwify_order_id = source.kiwify_order_id;
+    if (!target.invite_code && source.invite_code) patch.invite_code = source.invite_code;
+
+    if (Object.keys(patch).length > 0) {
+      const { error: upTargetErr } = await supa.from('families').update(patch).eq('id', targetId);
+      if (upTargetErr) throw upTargetErr;
     }
 
-    // 2. Deleta a familia source
+    // 3. Limpa invite_code da source ANTES de deletar (pra liberar pra target)
+    if (source.invite_code && patch.invite_code) {
+      await supa.from('families').update({ invite_code: null }).eq('id', sourceId);
+    }
+
+    // 4. Move allowed_users vinculados a source pra target
+    const { error: upUsersErr } = await supa
+      .from('allowed_users')
+      .update({ family_id: targetId })
+      .eq('family_id', sourceId);
+    if (upUsersErr) throw upUsersErr;
+
+    // 5. Move family_links onde source aparece (owner ou guest) pra target
+    await supa.from('family_links').update({ owner_family_id: targetId }).eq('owner_family_id', sourceId);
+    await supa.from('family_links').update({ guest_family_id: targetId }).eq('guest_family_id', sourceId);
+
+    // 6. Move kiwify_orders apontando pra source
+    await supa.from('kiwify_orders').update({ family_id: targetId }).eq('family_id', sourceId);
+
+    // 7. Deleta source
     const { error: delErr } = await supa.from('families').delete().eq('id', sourceId);
     if (delErr) throw delErr;
 
-    showToast('✓ Mesclado: "' + sourceName + '" → "' + targetName + '"');
+    showToast('✓ Mesclado: "' + sourceName + '" → "' + targetName + '"' + (Object.keys(patch).length ? ' (plano transferido)' : ''));
     loadCustomers();
     if (subsData.length > 0) loadSubscriptions();
     if (linksData.length > 0) loadLinks();
