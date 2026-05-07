@@ -835,8 +835,12 @@ window.__renameFamily = async (id, currentName) => {
   if (trimmed.length < 2) { showToast('Nome muito curto', 'err'); return; }
   if (trimmed === currentName) return;
   try {
-    const { error } = await supa.from('families').update({ name: trimmed }).eq('id', id);
+    const { data, error } = await supa.from('families').update({ name: trimmed }).eq('id', id).select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      showToast('Update bloqueado por RLS — rode admin_actions.sql', 'err');
+      return;
+    }
     showToast('✓ Renomeado pra: ' + trimmed);
     // Recarrega as 2 tabs que mostram nome de familia
     if (subsData.length > 0) loadSubscriptions();
@@ -1203,18 +1207,75 @@ function getCustomersFiltered() {
         return true;
       }),
     }))
-    .filter(g => g.members.length > 0);
+    // Filtra grupos com 0 membros SO se ha busca/filtro ativo
+    .filter(g => {
+      if (q || type) return g.members.length > 0;
+      return true;
+    });
+}
+
+// Map de email -> familias onde aparece (como owner ou como membro)
+function buildEmailMap() {
+  const map = new Map(); // email -> [{ familyId, role: 'owner' | 'member' }]
+  customersData.forEach(g => {
+    const ownerEmail = (g.family.owner_email || '').toLowerCase();
+    if (ownerEmail) {
+      if (!map.has(ownerEmail)) map.set(ownerEmail, []);
+      map.get(ownerEmail).push({ familyId: g.family.id, familyName: g.family.name, role: 'owner' });
+    }
+    g.members.forEach(m => {
+      const email = (allowedUsersMap.get(m.auth_user_id) || '').toLowerCase();
+      if (email) {
+        if (!map.has(email)) map.set(email, []);
+        map.get(email).push({ familyId: g.family.id, familyName: g.family.name, role: 'member' });
+      }
+    });
+  });
+  return map;
 }
 
 function renderCustomers() {
   const groups = getCustomersFiltered();
   const wrap = document.getElementById('custContent');
   if (groups.length === 0) {
-    wrap.innerHTML = '<div class="empty"><div class="icon">👥</div><div>Nenhum membro encontrado.<br><span style="font-size:12px">Conforme as famílias adicionarem pessoas no app, elas aparecem aqui.</span></div></div>';
+    wrap.innerHTML = '<div class="empty"><div class="icon">👥</div><div>Nenhuma família encontrada.<br><span style="font-size:12px">Ajuste os filtros ou adicione famílias.</span></div></div>';
     return;
   }
+  const emailMap = buildEmailMap();
+
   wrap.innerHTML = groups.map(g => {
     const ownerEmail = (g.family.owner_email || '').toLowerCase();
+    // Aviso se o owner desta familia eh tambem membro de outra familia
+    const ownerOtherFams = (emailMap.get(ownerEmail) || [])
+      .filter(x => x.familyId !== g.family.id && x.role === 'member');
+    const ownerWarning = ownerOtherFams.length > 0
+      ? `<span style="color:#FBBF24;font-size:11px;font-weight:700" title="Esse owner aparece como membro em ${ownerOtherFams.map(o => o.familyName).join(', ')}">⚠ tb membro em outra</span>`
+      : '';
+
+    if (g.members.length === 0) {
+      return `
+        <div class="fam-group">
+          <div class="fam-head">
+            <span class="crown">👑</span>
+            <div class="fam-name" style="cursor:pointer" title="Click pra renomear" onclick="window.__renameFamily('${g.family.id}', '${escapeHtml(g.family.name || '')}')">
+              ${escapeHtml(g.family.name || 'Família')} <span style="opacity:.5;font-size:11px">✏️</span>
+            </div>
+            <div class="fam-meta">
+              <span><b>${escapeHtml(g.family.owner_email || '—')}</b></span>
+              <span style="color:var(--text-faint)">⚠ 0 membros</span>
+              ${g.family.plan ? `<span><b>${PLAN_INFO[g.family.plan]?.label || g.family.plan}</b></span>` : ''}
+              ${g.family.status ? `<span><b>${STATUS_INFO[g.family.status]?.label || g.family.status}</b></span>` : ''}
+              ${ownerWarning}
+            </div>
+          </div>
+          <div style="padding:18px 18px 22px;color:var(--text-faint);font-size:13px;text-align:center">
+            Nenhum membro nessa família.
+            ${ownerOtherFams.length > 0 ? '<br><span style="font-size:11px">O owner foi adicionado como membro em: <strong>' + ownerOtherFams.map(o => escapeHtml(o.familyName)).join(', ') + '</strong></span>' : ''}
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div class="fam-group">
         <div class="fam-head">
@@ -1227,6 +1288,7 @@ function renderCustomers() {
             <span>${g.members.length} ${g.members.length === 1 ? 'pessoa' : 'pessoas'}</span>
             ${g.family.plan ? `<span><b>${PLAN_INFO[g.family.plan]?.label || g.family.plan}</b></span>` : ''}
             ${g.family.status ? `<span><b>${STATUS_INFO[g.family.status]?.label || g.family.status}</b></span>` : ''}
+            ${ownerWarning}
           </div>
         </div>
         <table class="mem-table">
@@ -1243,10 +1305,17 @@ function renderCustomers() {
           </thead>
           <tbody>
             ${g.members.map(m => {
-              const email = allowedUsersMap.get(m.auth_user_id) || '';
-              const isOwner = email && email.toLowerCase() === ownerEmail;
+              const email = (allowedUsersMap.get(m.auth_user_id) || '').toLowerCase();
+              const isOwner = email && email === ownerEmail;
               const isChild = isMemberChild(m);
               const canEdit = !!m.can_edit_plan;
+              // Esse email tem outra familia propria?
+              const otherOwnFamilies = email
+                ? (emailMap.get(email) || []).filter(x => x.familyId !== g.family.id && x.role === 'owner')
+                : [];
+              const memberWarning = otherOwnFamilies.length > 0
+                ? `<span style="color:#FBBF24;font-size:11px;font-weight:700;margin-left:6px" title="Esse email tem familia propria: ${otherOwnFamilies.map(o => o.familyName).join(', ')}">⚠</span>`
+                : '';
               return `
                 <tr>
                   <td>
@@ -1254,6 +1323,7 @@ function renderCustomers() {
                       <span style="font-size:14px">${escapeHtml(m.avatar || '👤')}</span>
                       ${escapeHtml(m.name || '—')}
                       ${isOwner ? '<span title="Dono da família" style="font-size:13px">👑</span>' : ''}
+                      ${memberWarning}
                     </span>
                   </td>
                   <td class="muted">${escapeHtml(email || '—')}</td>
@@ -1286,9 +1356,13 @@ function renderCustomers() {
 
 window.__toggleEditPlan = async (memberId, newVal) => {
   try {
-    const { error } = await supa.from('family_members').update({ can_edit_plan: newVal }).eq('id', memberId);
+    const { data, error } = await supa.from('family_members').update({ can_edit_plan: newVal }).eq('id', memberId).select();
     if (error) throw error;
-    showToast(newVal ? '✓ Permissão de editar plano LIBERADA' : '✓ Permissão de editar plano REMOVIDA');
+    if (!data || data.length === 0) {
+      showToast('Update bloqueado por RLS — rode admin_actions.sql + member_permissions.sql', 'err');
+      return;
+    }
+    showToast(newVal ? '✓ Permissão de editar plano LIBERADA' : '✓ Permissão REMOVIDA');
     loadCustomers();
   } catch (err) {
     showToast('Erro: ' + err.message, 'err');
@@ -1343,13 +1417,17 @@ window.__editMember = async (memberId) => {
   else if (data.override === 'adult') isChild = false;
 
   try {
-    const { error } = await supa.from('family_members').update({
+    const { data, error } = await supa.from('family_members').update({
       name: newName,
       age: newAge,
       is_child: isChild,
       height: newHeight,
-    }).eq('id', memberId);
+    }).eq('id', memberId).select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      showToast('Update bloqueado por RLS — rode admin_actions.sql + member_permissions.sql', 'err');
+      return;
+    }
     showToast('✓ Membro atualizado');
     loadCustomers();
   } catch (err) {
