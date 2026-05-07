@@ -8,6 +8,13 @@
 
   # /app sem barra → redireciona pra /app/ (pra resolver index.html corretamente)
   RewriteRule ^app$ /app/ [L,R=301]
+
+  # /convite/CODE → /convite/index.html?code=CODE (rota pra pagina de convite)
+  RewriteRule ^convite/?$ /convite/index.html [L]
+  RewriteRule ^convite/([A-Z0-9]+)/?$ /convite/index.html?code=$1 [L,QSA]
+
+  # /acessadm sem barra → /acessadm/
+  RewriteRule ^acessadm$ /acessadm/ [L,R=301]
 </IfModule>
 
 # Cache: HTML e service worker NUNCA cacheia (browser sempre busca fresco).

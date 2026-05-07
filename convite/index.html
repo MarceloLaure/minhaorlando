@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Você foi convidado · Minha Orlando</title>
+  <meta name="description" content="Sua família foi convidada pra uma viagem em Orlando 2026 com o Minha Orlando.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="/app/icon-192.png" type="image/png">
+  <meta name="theme-color" content="#0B1B3A">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,700;9..144,900&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy-deep: #0B1B3A; --navy-royal: #1E3A8A; --blue-bright: #3B82F6;
+      --gold: #FCD34D; --gold-deep: #F59E0B; --pink: #F472B6; --purple: #A78BFA;
+      --text: #F8FAFC; --text-dim: #B8C2D9; --text-faint: #7B88A8;
+      --surface: #11213f; --border: #1f3458;
+    }
+    html, body {
+      min-height: 100vh; min-height: 100dvh;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background:
+        radial-gradient(1200px 700px at 15% -10%, rgba(252,211,77,.18) 0%, transparent 55%),
+        radial-gradient(900px 600px at 90% 110%, rgba(236,72,153,.18) 0%, transparent 55%),
+        linear-gradient(135deg, #0B1B3A 0%, #1E3A8A 55%, #3B82F6 100%);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    a { color: var(--gold); text-decoration: none; }
+
+    .stars {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        radial-gradient(2px 2px at 20% 18%, #fff 50%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 70% 28%, rgba(252,211,77,.85) 50%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 38% 62%, rgba(255,255,255,.7) 50%, transparent 100%),
+        radial-gradient(2px 2px at 85% 75%, rgba(252,211,77,.7) 50%, transparent 100%),
+        radial-gradient(1px 1px at 12% 80%, #fff 50%, transparent 100%);
+      opacity: .5;
+    }
+
+    .wrap { position: relative; z-index: 1; width: 100%; max-width: 480px; }
+
+    .card {
+      background: linear-gradient(160deg, rgba(17,33,63,.85), rgba(10,20,42,.85));
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: 28px; overflow: hidden;
+      box-shadow: 0 30px 80px -20px rgba(0,0,0,.5);
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px;
+      background: rgba(252,211,77,.18); border: 1px solid rgba(252,211,77,.4);
+      color: var(--gold); font-size: 11px; font-weight: 800;
+      letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px;
+    }
+
+    .icon-big { font-size: 50px; margin-bottom: 14px; }
+
+    h1 {
+      font-family: 'Fraunces', serif; font-weight: 900;
+      font-size: clamp(24px, 6vw, 32px);
+      line-height: 1.15; letter-spacing: -.5px;
+      color: var(--text); margin-bottom: 12px;
+    }
+    h1 .grad { background: linear-gradient(90deg, var(--gold), var(--pink), var(--purple)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+    .lead { color: var(--text-dim); font-size: 15px; line-height: 1.55; margin-bottom: 22px; }
+
+    .offer {
+      padding: 18px 20px; border-radius: 16px;
+      background: linear-gradient(135deg, rgba(252,211,77,.1), rgba(167,139,250,.06));
+      border: 1px solid rgba(252,211,77,.3);
+      margin-bottom: 22px;
+    }
+    .offer-label { font-size: 11px; color: var(--gold); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+    .offer-text { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; line-height: 1.3; color: var(--text); }
+    .offer-fine { color: var(--text-faint); font-size: 12px; margin-top: 8px; line-height: 1.5; }
+
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
+    .feat { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid var(--border); font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+    .feat .e { font-size: 18px; }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 18px 24px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+      color: #0B1B3A; font-weight: 800; font-size: 16px;
+      border: none; cursor: pointer; font-family: inherit;
+      box-shadow: 0 16px 40px -10px rgba(252,211,77,.5);
+      transition: transform .15s, box-shadow .15s;
+      text-decoration: none;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 22px 50px -10px rgba(252,211,77,.65); }
+
+    .btn-ghost {
+      background: transparent; color: var(--text-dim);
+      border: 1px solid var(--border); box-shadow: none;
+      font-weight: 700; font-size: 14px;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.05); color: var(--text); }
+
+    .fine { color: var(--text-faint); font-size: 11px; line-height: 1.5; text-align: center; margin-top: 14px; }
+
+    .card-padding { padding: 32px 28px; }
+
+    .header-bar { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: rgba(11,27,58,.5); }
+    .header-bar img { width: 30px; height: 30px; border-radius: 8px; }
+    .header-bar .brand { font-weight: 900; font-size: 14px; letter-spacing: -.2px; }
+
+    .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; margin: 40px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .err { padding: 14px 18px; border-radius: 12px; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.35); color: #FCA5A5; font-size: 14px; line-height: 1.5; }
+
+    .free-form { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+    .free-form label { font-size: 11px; color: var(--text-faint); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .free-form input {
+      padding: 14px 16px; border-radius: 12px;
+      background: rgba(11,27,58,.6); border: 1px solid var(--border);
+      color: var(--text); font-size: 15px; font-family: inherit; outline: none;
+    }
+    .free-form input:focus { border-color: var(--gold); }
+
+    @media (max-width: 380px) {
+      .features { grid-template-columns: 1fr; }
+      .card-padding { padding: 26px 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="header-bar">
+        <img src="/app/icon-192.png" alt="">
+        <div class="brand">Minha Orlando</div>
+      </div>
+
+      <div class="card-padding" id="content">
+        <div class="spinner"></div>
+        <p style="text-align:center;color:var(--text-faint);font-size:13px;margin-top:8px">Validando seu convite...</p>
+      </div>
+    </div>
+
+    <p class="fine">© 2026 Minha Orlando · planejador de viagens em família</p>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+
+    const SUPA_URL = 'https://ujnazpcffceuyctnnoip.supabase.co';
+    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbmF6cGNmZmNldXljdG5ub2lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTAzMjIsImV4cCI6MjA5MzQyNjMyMn0.mEKfsco6wQNhqVFfrERR5qwS9GbYdUYEfygxwWKSg6I';
+
+    const supa = createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false } });
+
+    const CHECKOUT_URLS = {
+      family_3m:  'https://pay.kiwify.com.br/DxOgpCs',   // Convidado 3m — R$ 53,70
+      family_6m:  'https://pay.kiwify.com.br/xDMqgmi',   // Convidado 6m 50% OFF — R$ 53,70
+      family_12m: null,                                   // 12m owner = guest grátis (cadastro direto)
+    };
+
+    const OFFERS = {
+      family_3m: {
+        title: 'Acesso por <span class="grad">3 meses</span>',
+        price: 'R$ 53,70',
+        ctaLabel: 'Garantir minha vaga · R$ 53,70',
+        fine: 'Pagamento à vista no PIX, cartão até 12x ou boleto. Sem assinatura recorrente.',
+      },
+      family_6m: {
+        title: 'Acesso por <span class="grad">6 meses</span> · 50% OFF',
+        price: 'R$ 53,70',
+        ctaLabel: 'Garantir vaga com 50% OFF',
+        fine: 'Você ganha 50% de desconto porque a família anfitriã tem o pacote 6 meses. Pagamento à vista.',
+      },
+      family_12m: {
+        title: 'Acesso <span class="grad">100% GRÁTIS</span>',
+        price: 'GRÁTIS',
+        ctaLabel: 'Aceitar convite grátis',
+        fine: 'Cortesia da família anfitriã (que tem o pacote 12 meses). Não precisa pagar nada — só cadastra seu email.',
+      },
+    };
+
+    const PLAN_LABELS = {
+      family_3m:  '3 meses',
+      family_6m:  '6 meses',
+      family_12m: '12 meses',
+    };
+
+    const params = new URLSearchParams(location.search);
+    const code = (params.get('code') || '').toUpperCase().trim();
+    const content = document.getElementById('content');
+
+    function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+    function formatMonth(iso) {
+      if (!iso) return 'fim da viagem';
+      return new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
+
+    async function load() {
+      if (!code) {
+        renderError('Código de convite ausente na URL.', 'Use o link que veio no email do anfitrião.');
+        return;
+      }
+      try {
+        const { data, error } = await supa.rpc('get_invite_info', { p_code: code });
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          renderError('Convite não encontrado ou expirado.', 'Confere com a família anfitriã se o link está correto. Se a viagem dela já terminou, o código pode não estar mais ativo.');
+          return;
+        }
+        const info = data[0];
+        if (info.owner_status !== 'active') {
+          renderError('Esse convite não está mais ativo.', 'O acesso da família anfitriã pode ter sido pausado ou expirado.');
+          return;
+        }
+        renderOffer(info);
+      } catch (err) {
+        console.error('[convite]', err);
+        renderError('Erro ao validar convite.', err.message || String(err));
+      }
+    }
+
+    function renderError(title, sub) {
+      content.innerHTML = `
+        <div class="icon-big">😔</div>
+        <h1>${escapeHtml(title)}</h1>
+        <p class="lead">${escapeHtml(sub)}</p>
+        <a class="btn btn-ghost" href="https://minhaorlando.com.br">Ir pra página inicial</a>
+      `;
+    }
+
+    function renderOffer(info) {
+      const offer = OFFERS[info.owner_plan];
+      if (!offer) {
+        renderError('Plano da família anfitriã desconhecido.', 'Entra em contato com a família anfitriã ou com contato@minhaorlando.com.br.');
+        return;
+      }
+      const ownerName = (info.owner_name || 'Família').replace(/^Família\s+/i, '');
+      const planLabel = PLAN_LABELS[info.owner_plan];
+      const isFree = info.owner_plan === 'family_12m';
+      const checkoutUrl = isFree ? null : CHECKOUT_URLS[info.owner_plan];
+
+      content.innerHTML = `
+        <div class="badge">✨ Você foi convidado</div>
+        <h1><strong>${escapeHtml(ownerName)}</strong> te convidou pra<br/>viagem em <span class="grad">Orlando 2026</span></h1>
+        <p class="lead">A família anfitriã está usando o <strong>Minha Orlando</strong> com o Pacote <strong>${planLabel}</strong> e te convidou pra entrar na viagem dela.</p>
+
+        <div class="offer">
+          <div class="offer-label">Sua oferta</div>
+          <div class="offer-text">${offer.title}</div>
+          <p class="offer-fine">${offer.fine}</p>
+        </div>
+
+        <div class="features">
+          <div class="feat"><span class="e">🎢</span> Filas em tempo real</div>
+          <div class="feat"><span class="e">✨</span> Pixie IA</div>
+          <div class="feat"><span class="e">📅</span> Plano dia-a-dia</div>
+          <div class="feat"><span class="e">💸</span> Despesas em grupo</div>
+        </div>
+
+        ${isFree ? renderFreeFormHtml(code) : `
+          <a class="btn" href="${checkoutUrl}?utm_source=invite&utm_content=${encodeURIComponent(code)}&tracking=${encodeURIComponent(code)}" id="cta">
+            ${offer.ctaLabel}
+            <span aria-hidden="true">→</span>
+          </a>
+          <p class="fine">Acesso garantido até ${escapeHtml(formatMonth(info.access_until))}. Pagamento processado pela Kiwify.</p>
+        `}
+      `;
+
+      if (isFree) {
+        document.getElementById('freeForm').addEventListener('submit', handleFreeSignup);
+      }
+    }
+
+    function renderFreeFormHtml(code) {
+      return `
+        <form class="free-form" id="freeForm">
+          <div>
+            <label for="freeEmail">Seu email</label>
+            <input type="email" id="freeEmail" required autocomplete="email" placeholder="voce@email.com">
+          </div>
+          <button type="submit" class="btn" id="freeBtn">Aceitar convite grátis →</button>
+          <div id="freeMsg"></div>
+        </form>
+        <p class="fine">Vamos te mandar um link mágico no email pra entrar no app — sem senha, sem cartão.</p>
+      `;
+    }
+
+    async function handleFreeSignup(e) {
+      e.preventDefault();
+      const email = document.getElementById('freeEmail').value.trim().toLowerCase();
+      const btn = document.getElementById('freeBtn');
+      const msg = document.getElementById('freeMsg');
+      msg.innerHTML = '';
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+      try {
+        const res = await fetch(SUPA_URL + '/functions/v1/register-free-guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },
+          body: JSON.stringify({ invite_code: code, email }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(json.error || ('Erro ' + res.status));
+        }
+        content.innerHTML = `
+          <div class="icon-big">✨</div>
+          <h1>Tá feito!</h1>
+          <p class="lead">Acabamos de mandar um <strong>link mágico</strong> pro seu email.<br/>Clica nele pra entrar no app — sem senha, sem cartão.</p>
+          <p class="fine">Não chegou em 1 min? Confere o spam.</p>
+        `;
+      } catch (err) {
+        msg.innerHTML = `<div class="err">${escapeHtml(err.message || String(err))}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Aceitar convite grátis →';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
