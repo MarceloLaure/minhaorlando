@@ -3,92 +3,182 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minha Orlando - Redirecionando...</title>
+  <title>Minha Orlando — em breve</title>
+  <meta name="description" content="O planejador completo da sua viagem para Orlando: parques, restaurantes, filas em tempo real e IA pra montar seu roteiro.">
   <link rel="icon" href="/app/icon-192.png" type="image/png">
+  <meta name="theme-color" content="#1E3A8A">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Minha Orlando — Planeje sua viagem mágica">
+  <meta property="og:description" content="O planejador completo da sua viagem para Orlando.">
+  <meta property="og:image" content="/app/icon-512.png">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Fraunces:wght@700;900&display=swap" rel="stylesheet">
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    html, body { min-height: 100%; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; }
     body {
+      min-height: 100vh; min-height: 100dvh;
+      background:
+        radial-gradient(1200px 700px at 15% -10%, rgba(252,211,77,0.18) 0%, transparent 55%),
+        radial-gradient(900px 600px at 90% 110%, rgba(236,72,153,0.18) 0%, transparent 55%),
+        linear-gradient(135deg, #0B1B3A 0%, #1E3A8A 55%, #3B82F6 100%);
+      color: #fff;
       display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #0B1B3A 0%, #1E3A8A 60%, #3B82F6 100%);
-      color: #fff; padding: 24px; text-align: center;
+      padding: 24px;
+      overflow-x: hidden;
     }
-    .card {
-      max-width: 360px; padding: 28px 24px; border-radius: 24px;
-      background: rgba(255,255,255,0.08); backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.18);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+
+    .stars {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        radial-gradient(2px 2px at 20% 18%, #fff 50%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 70% 28%, rgba(252,211,77,0.85) 50%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 38% 62%, rgba(255,255,255,0.7) 50%, transparent 100%),
+        radial-gradient(2px 2px at 85% 75%, rgba(252,211,77,0.7) 50%, transparent 100%),
+        radial-gradient(1px 1px at 12% 80%, #fff 50%, transparent 100%);
+      opacity: 0.6;
+      animation: twinkle 4s ease-in-out infinite;
     }
-    .icon { font-size: 56px; margin-bottom: 14px; }
-    h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
-    p { font-size: 14px; opacity: 0.9; line-height: 1.5; margin-bottom: 18px; }
-    .spinner {
-      width: 32px; height: 32px; margin: 0 auto;
-      border: 3px solid rgba(255,255,255,0.25);
-      border-top-color: #fff; border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    @keyframes twinkle { 50% { opacity: 0.95; } }
+
+    .wrap { position: relative; z-index: 1; max-width: 560px; width: 100%; text-align: center; }
+
+    .logo-icon {
+      width: 92px; height: 92px; margin: 0 auto 22px;
+      border-radius: 26px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: 0 16px 50px rgba(0,0,0,0.3);
+      font-size: 50px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    a {
-      display: inline-block; margin-top: 18px;
-      padding: 12px 22px; border-radius: 999px;
-      background: #fff; color: #1E3A8A;
-      text-decoration: none; font-weight: 800; font-size: 14px;
+
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(38px, 7vw, 60px);
+      font-weight: 900; line-height: 1.05; margin-bottom: 14px;
+      letter-spacing: -1.2px;
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, #FCD34D, #F472B6, #A78BFA);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    .lead {
+      font-size: clamp(15px, 1.6vw, 18px);
+      opacity: 0.92; line-height: 1.55; max-width: 460px; margin: 0 auto 32px;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: 999px;
+      background: rgba(252,211,77,0.18); border: 1px solid rgba(252,211,77,0.4);
+      color: #FCD34D; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;
+      text-transform: uppercase; margin-bottom: 20px;
+    }
+
+    .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 36px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 15px 28px; border-radius: 999px;
+      font-size: 15px; font-weight: 800; text-decoration: none;
+      cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease;
+      border: none; font-family: inherit;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #FCD34D, #F59E0B);
+      color: #0B1B3A;
+      box-shadow: 0 10px 30px rgba(252,211,77,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(252,211,77,0.5); }
+    .btn-ghost {
+      background: rgba(255,255,255,0.1); color: #fff;
+      border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(8px);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.18); }
+
+    .features {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 14px; margin-top: 8px;
+    }
+    @media (max-width: 540px) { .features { grid-template-columns: 1fr; } }
+    .feat {
+      padding: 18px 14px; border-radius: 16px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(12px);
+    }
+    .feat-icon { font-size: 28px; margin-bottom: 8px; }
+    .feat-title { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+    .feat-desc { font-size: 11px; opacity: 0.82; line-height: 1.45; }
+
+    footer {
+      margin-top: 44px; font-size: 11px; opacity: 0.55; letter-spacing: 0.4px;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="icon">✨</div>
-    <h1>Minha Orlando</h1>
-    <p>O app mudou de endereço. Te levando pra <strong>/app</strong>...</p>
-    <div class="spinner"></div>
-    <a href="/app/">Abrir agora</a>
-  </div>
+  <div class="stars"></div>
+
+  <main class="wrap">
+    <div class="badge">✨ Em construção</div>
+    <div class="logo-icon">🏰</div>
+    <h1>Sua viagem<br><span class="gradient-text">mágica</span> começa aqui</h1>
+    <p class="lead">
+      O planejador completo pra Orlando: filas em tempo real, restaurantes,
+      contagem regressiva, e uma IA que monta seu dia de parque.
+    </p>
+
+    <div class="actions">
+      <a href="/app/" class="btn btn-primary">Abrir o app →</a>
+      <a href="mailto:contato@minhaorlando.com.br" class="btn btn-ghost">Quero saber mais</a>
+    </div>
+
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon">🎢</div>
+        <div class="feat-title">Filas em tempo real</div>
+        <div class="feat-desc">Saiba o tempo de espera de cada atração.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">✨</div>
+        <div class="feat-title">IA Pixie</div>
+        <div class="feat-desc">Sugestões personalizadas pra família.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📅</div>
+        <div class="feat-title">Roteiro completo</div>
+        <div class="feat-desc">Parques, refeições e despesas no mesmo lugar.</div>
+      </div>
+    </div>
+
+    <footer>© 2026 Minha Orlando · Site oficial em construção</footer>
+  </main>
 
   <script>
-    // Migracao: limpa SW antigo (registrado em '/') e caches antigos da raiz,
-    // depois redireciona pra /app/. Pra quem ja instalou o PWA do '/' antes do move.
-    (function () {
-      var target = '/app/';
-      function redirect() {
-        try { window.location.replace(target); }
-        catch (_) { window.location.href = target; }
-      }
-
-      var jobs = [];
-
-      if ('serviceWorker' in navigator) {
-        jobs.push(
-          navigator.serviceWorker.getRegistrations().then(function (regs) {
-            return Promise.all(regs.map(function (r) {
-              // So desregistra os que cobrem a raiz (scope '/'), nao o novo /app/
-              if (r.scope && r.scope.replace(location.origin, '').replace(/\/$/, '') === '') {
-                return r.unregister().catch(function () {});
-              }
-              return null;
-            }));
-          }).catch(function () {})
-        );
-      }
-
-      if ('caches' in window) {
-        jobs.push(
-          caches.keys().then(function (keys) {
-            return Promise.all(keys.map(function (k) {
-              if (k.indexOf('minha-orlando-') === 0) return caches.delete(k).catch(function () {});
-              return null;
-            }));
-          }).catch(function () {})
-        );
-      }
-
-      // Espera no maximo 1.5s. Se demorar, redireciona mesmo assim.
-      var done = false;
-      function go() { if (!done) { done = true; redirect(); } }
-      Promise.all(jobs).then(go);
-      setTimeout(go, 1500);
-    })();
+    // Limpa SW antigo registrado em scope '/' (do app que ficava aqui antes do /app/).
+    // Sem redirect — quem tem o PWA instalado vai precisar reinstalar.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (r) {
+          if (r.scope && r.scope.replace(location.origin, '').replace(/\/$/, '') === '') {
+            r.unregister().catch(function(){});
+          }
+        });
+      }).catch(function(){});
+    }
+    if ('caches' in window) {
+      caches.keys().then(function (keys) {
+        keys.forEach(function (k) {
+          if (k.indexOf('minha-orlando-') === 0) caches.delete(k).catch(function(){});
+        });
+      }).catch(function(){});
+    }
   </script>
 </body>
 </html>
