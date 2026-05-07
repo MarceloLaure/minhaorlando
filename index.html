@@ -207,6 +207,9 @@ p  { text-wrap: pretty; margin: 0; }
   flex-shrink: 0;
 }
 .nav-cta:hover { transform: translateY(-1px); }
+/* Default (desktop): mostra texto longo, esconde curto */
+.nav-cta .full { display: inline; }
+.nav-cta .short { display: none; }
 @media (max-width: 760px) {
   .nav-links { display: none; }
 }
@@ -216,11 +219,10 @@ p  { text-wrap: pretty; margin: 0; }
   .logo-mark { width: 30px; height: 30px; border-radius: 8px; }
   .logo-mark img { width: 20px; height: 20px; }
   .nav-cta { padding: 8px 14px; font-size: 12px; }
-  /* "Acessar o app →" vira "Abrir →" em telas bem pequenas */
+  /* No mobile: inverte — esconde longo, mostra curto */
   .nav-cta .full { display: none; }
   .nav-cta .short { display: inline; }
 }
-.nav-cta .short { display: none; }
 
 /* ============================================================
    HERO
