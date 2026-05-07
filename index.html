@@ -798,6 +798,20 @@ footer {
 .tw-close:hover { color: var(--text); }
 
 </style>
+<script>
+// SAFETY NET: se a landing receber tokens de auth no hash (ex: magic link
+// caiu aqui por algum motivo), redireciona pro app preservando os tokens.
+// Roda ANTES de qualquer outra coisa pra evitar perder a sessao.
+(function () {
+  var h = location.hash || '';
+  var s = location.search || '';
+  if (h.indexOf('access_token=') !== -1 || h.indexOf('refresh_token=') !== -1
+      || s.indexOf('code=') !== -1 || s.indexOf('error=access_denied') !== -1) {
+    var target = '/app/' + s + h;
+    location.replace(target);
+  }
+})();
+</script>
 </head>
 <body>
 

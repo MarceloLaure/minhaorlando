@@ -291,7 +291,7 @@ loginForm.addEventListener('submit', async (e) => {
 
     const { error } = await supa.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin + '/acessadm/' },
+      options: { emailRedirectTo: 'https://minhaorlando.com.br/acessadm/' },
     });
     if (error) throw error;
     showMsg('Link mágico enviado! Confere seu email (incluindo spam).', 'ok');
