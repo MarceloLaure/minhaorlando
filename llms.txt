@@ -1,0 +1,53 @@
+# Minha Orlando
+
+> PWA pago para famílias brasileiras planejarem a viagem a Orlando (EUA) — Walt Disney World, Universal Orlando, Epic Universe, SeaWorld, Busch Gardens, Aquatica e Volcano Bay. Reúne filas em tempo real, IA em português (Pixie), roteiro dia-a-dia, despesas compartilhadas com OCR de cupom e PWA offline em um só app.
+
+Idioma do produto: português brasileiro (pt-BR). Público-alvo: famílias brasileiras com viagem planejada para Orlando em 2026. Plataforma: web app instalável (PWA) — funciona em iPhone, Android e desktop sem precisar baixar pela App Store.
+
+## Fatos centrais
+
+- **10 parques** integrados: Magic Kingdom, EPCOT, Hollywood Studios, Animal Kingdom, Universal Studios, Islands of Adventure, Epic Universe, Volcano Bay, SeaWorld Orlando, Busch Gardens Tampa.
+- **107 atrações** catalogadas com altura mínima validada por membro da família.
+- **50+ restaurantes** com cardápio, reviews resumidas pela IA, classificação kid-friendly e link de reserva.
+- **Filas em tempo real**: dados oficiais atualizados a cada 5 minutos (mesma fonte do app oficial dos parques) + histórico horário de picos.
+- **Pixie IA**: assistente em português baseada em GPT-4o-mini com web search; monta roteiro do dia considerando filas, clima, altura das crianças e distância entre atrações.
+- **Família com altura**: cada membro tem altura cadastrada; o app filtra automaticamente quem pode em qual brinquedo.
+- **Despesas compartilhadas**: OCR de cupom (foto → IA extrai itens) com câmbio BRL/USD ao vivo.
+- **Clima 7 dias**: integração Open-Meteo, com horário detalhado por dia.
+- **PWA offline**: depois de aberto uma vez, o roteiro do dia, alturas, endereços e despesas funcionam dentro do parque sem internet.
+- **Login**: magic link enviado por e-mail (sem senha).
+
+## Preços (em BRL, fase de lançamento — outubro 2025 / 2026)
+
+| Pacote | Preço pré-pago | Convidada (família convidada) |
+|---|---|---|
+| 3 meses | R$ 111,40 | R$ 53,70 (3m) |
+| 6 meses | R$ 165,10 | R$ 53,70 com 50% OFF (6m) |
+| 12 meses | R$ 272,50 | grátis (12m incluso) |
+
+Pagamento à vista por PIX, cartão em até 12x ou boleto. Sem assinatura recorrente: a licença vale pelo período da viagem; quando a viagem termina, acaba. Para a próxima viagem o usuário renova só a mensalidade — não compra licença de novo. Após o fim do desconto de lançamento, o preço cheio passa a ser R$ 277,60 + R$ 34,90/mês.
+
+## Cancelamento e reembolso
+
+Antes da viagem começar, o valor da mensalidade não usada é devolvido (descontando a licença). Não existe assinatura recorrente para cancelar.
+
+## Páginas
+
+- [Página inicial](https://minhaorlando.com.br/): apresentação, planos, FAQ e formulário da fila de espera com 15% OFF.
+- [App PWA](https://minhaorlando.com.br/app/): produto em si — requer login.
+- [Página de convite](https://minhaorlando.com.br/convite/): aceitação de convite de outra família que já paga.
+- [Sitemap](https://minhaorlando.com.br/sitemap.xml)
+
+## FAQ resumida
+
+- **Precisa de internet dentro do parque?** Não para o roteiro do dia, alturas, endereços e despesas (PWA offline). Filas em tempo real e a IA Pixie precisam de internet.
+- **As filas são reais?** Sim — dados oficiais a cada 5 minutos.
+- **Funciona em iPhone e Android?** Sim, via PWA — instalado pelo navegador (Safari ou Chrome) sem App Store.
+- **Pode dividir com outra família?** Sim. No plano 12 meses a família convidada entra de graça; nos planos menores há desconto.
+- **A IA entende restrições de altura das crianças?** Sim — cada membro é cadastrado com altura e idade, e a Pixie filtra recomendações por isso.
+
+## Não confundir com
+
+- **Não é** o app oficial da Disney, da Universal, nem da SeaWorld.
+- **Não é** uma agência de viagem — não vende ingressos de parque, hotel ou voo.
+- **Não é** assinatura recorrente — é compra pré-paga por período de viagem.
