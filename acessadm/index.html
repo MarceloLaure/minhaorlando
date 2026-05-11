@@ -278,7 +278,8 @@
           <option value="child">👶 Crianças</option>
         </select>
         <button id="custRefresh">↻ Atualizar</button>
-        <button id="custExport" class="primary">⬇ CSV</button>
+        <button id="custAddFamily" class="primary">+ Nova família</button>
+        <button id="custExport">⬇ CSV</button>
       </div>
 
       <div id="custContent">
@@ -1135,10 +1136,10 @@ async function loadCustomers() {
   try {
     const [members, families, users] = await Promise.all([
       supa.from('family_members')
-        .select('id, family_id, name, subtitle, age, height, role, avatar, color, photo_url, restrictions, auth_user_id, can_edit_plan, is_child, created_at')
+        .select('id, family_id, name, subtitle, age, height, role, avatar, color, photo_url, restrictions, auth_user_id, can_edit_plan, is_child, phone, created_at')
         .order('age', { ascending: false, nullsFirst: false }),
       supa.from('families')
-        .select('id, name, owner_email, plan, status, access_until, invite_code')
+        .select('id, name, owner_email, plan, status, access_until, invite_code, phone')
         .order('name'),
       supa.from('allowed_users').select('id, email'),
     ]);
@@ -1252,6 +1253,8 @@ function renderCustomers() {
       ? `<span style="color:#FBBF24;font-size:11px;font-weight:700" title="Esse owner aparece como membro em ${ownerOtherFams.map(o => o.familyName).join(', ')}">⚠ tb membro em outra</span>`
       : '';
 
+    const addMemberBtn = `<button class="row-btn primary" style="margin-left:auto" onclick="window.__addMember('${g.family.id}', '${escapeHtml(g.family.name || '')}')">+ Pessoa</button>`;
+
     if (g.members.length === 0) {
       const target = ownerOtherFams[0]; // primeira outra familia onde owner eh membro
       return `
@@ -1263,11 +1266,13 @@ function renderCustomers() {
             </div>
             <div class="fam-meta">
               <span><b>${escapeHtml(g.family.owner_email || '—')}</b></span>
+              ${g.family.phone ? `<span>📞 ${escapeHtml(g.family.phone)}</span>` : ''}
               <span style="color:var(--text-faint)">⚠ 0 membros</span>
               ${g.family.plan ? `<span><b>${PLAN_INFO[g.family.plan]?.label || g.family.plan}</b></span>` : ''}
               ${g.family.status ? `<span><b>${STATUS_INFO[g.family.status]?.label || g.family.status}</b></span>` : ''}
               ${ownerWarning}
             </div>
+            ${addMemberBtn}
           </div>
           <div style="padding:18px 18px 22px;color:var(--text-faint);font-size:13px;text-align:center">
             Nenhum membro nessa família.
@@ -1292,11 +1297,13 @@ function renderCustomers() {
           </div>
           <div class="fam-meta">
             <span><b>${escapeHtml(g.family.owner_email || '—')}</b></span>
+            ${g.family.phone ? `<span>📞 ${escapeHtml(g.family.phone)}</span>` : ''}
             <span>${g.members.length} ${g.members.length === 1 ? 'pessoa' : 'pessoas'}</span>
             ${g.family.plan ? `<span><b>${PLAN_INFO[g.family.plan]?.label || g.family.plan}</b></span>` : ''}
             ${g.family.status ? `<span><b>${STATUS_INFO[g.family.status]?.label || g.family.status}</b></span>` : ''}
             ${ownerWarning}
           </div>
+          ${addMemberBtn}
         </div>
         <table class="mem-table">
           <thead>
@@ -1334,7 +1341,10 @@ function renderCustomers() {
                     </span>
                     ${m.subtitle ? `<div style="font-size:11px;color:var(--gold);font-style:italic;margin-top:2px;font-weight:600">${escapeHtml(m.subtitle)}</div>` : ''}
                   </td>
-                  <td class="muted">${escapeHtml(email || '—')}</td>
+                  <td class="muted">
+                    ${escapeHtml(email || '—')}
+                    ${m.phone ? `<div style="font-size:11px;margin-top:2px">📞 ${escapeHtml(m.phone)}</div>` : ''}
+                  </td>
                   <td>${m.age != null ? m.age + ' anos' : '<span class="muted">—</span>'}</td>
                   <td>
                     <span class="badge-pill ${isChild ? 'b-yellow' : 'b-blue'}">
@@ -1509,6 +1519,185 @@ window.__editMember = async (memberId) => {
   }
 };
 
+// ============================================================
+// ADD FAMILY (cadastro manual de familia + owner)
+// ============================================================
+window.__addFamily = async () => {
+  const data = await admForm(
+    'Nova família (cadastro manual)',
+    'Cria a família + adiciona o titular como primeiro membro. Use só pra clientes manuais (Kiwify cria automático).',
+    [
+      { name: 'family_name', label: 'Nome da família *',     type: 'text',  value: '', placeholder: 'Ex: Família Silva' },
+      { name: 'owner_name',  label: 'Nome do titular *',     type: 'text',  value: '', placeholder: 'Ex: Carlos Silva' },
+      { name: 'owner_email', label: 'Email do titular *',    type: 'email', value: '', placeholder: 'carlos@email.com' },
+      { name: 'phone',       label: 'Telefone (opcional)',   type: 'tel',   value: '', placeholder: '+55 11 99999-9999' },
+      { name: 'plan',        label: 'Plano',                 type: 'select', value: 'family_3m', options: [
+        { value: '',                label: '— Sem plano —' },
+        { value: 'family_3m',       label: 'Pacote 3m (R$ 111,40)' },
+        { value: 'family_6m',       label: 'Pacote 6m (R$ 165,10)' },
+        { value: 'family_12m',      label: 'Pacote 12m (R$ 272,50)' },
+        { value: 'guest_3m',        label: 'Convidado 3m (R$ 53,70)' },
+        { value: 'guest_6m_50off',  label: 'Convidado 6m 50% (R$ 53,70)' },
+      ]},
+      { name: 'access_until', label: 'Acesso até (YYYY-MM-DD, opcional)', type: 'date', value: '' },
+    ],
+    { icon: '➕', okLabel: 'Criar família' }
+  );
+  if (!data) return;
+
+  const familyName = (data.family_name || '').trim();
+  const ownerName  = (data.owner_name || '').trim();
+  const ownerEmail = (data.owner_email || '').trim().toLowerCase();
+  const phone      = (data.phone || '').trim() || null;
+  const plan       = data.plan || null;
+  const accessUntil = data.access_until || null;
+
+  if (!familyName) return showToast('Nome da família é obrigatório', 'err');
+  if (!ownerName)  return showToast('Nome do titular é obrigatório', 'err');
+  if (!ownerEmail || !ownerEmail.includes('@')) return showToast('Email inválido', 'err');
+
+  try {
+    // 1) Cria a familia
+    const familyPayload = {
+      name: familyName,
+      owner_email: ownerEmail,
+      phone,
+      plan,
+      status: plan ? 'active' : 'pending',
+      access_until: accessUntil,
+    };
+    const { data: famRows, error: e1 } = await supa.from('families').insert(familyPayload).select();
+    if (e1) throw new Error('Cria família: ' + e1.message);
+    const family = famRows && famRows[0];
+    if (!family) throw new Error('Família não retornada após insert');
+
+    // 2) Cria/atualiza allowed_users (vincula email ao family_id)
+    let allowedId = null;
+    const { data: existing } = await supa.from('allowed_users').select('id').eq('email', ownerEmail).maybeSingle();
+    if (existing) {
+      const { error: eUp } = await supa.from('allowed_users').update({ family_id: family.id }).eq('id', existing.id);
+      if (eUp) console.warn('[addFamily] update allowed_users:', eUp.message);
+      allowedId = existing.id;
+    } else {
+      const { data: au, error: eIn } = await supa.from('allowed_users').insert({ email: ownerEmail, family_id: family.id }).select();
+      if (eIn) console.warn('[addFamily] insert allowed_users:', eIn.message);
+      allowedId = au && au[0] ? au[0].id : null;
+    }
+
+    // 3) Cria o titular como primeiro membro
+    const { error: e3 } = await supa.from('family_members').insert({
+      family_id: family.id,
+      name: ownerName,
+      phone,
+      role: 'owner',
+      can_edit_plan: true,
+      auth_user_id: allowedId,
+      avatar: '👑',
+    });
+    if (e3) console.warn('[addFamily] insert member:', e3.message);
+
+    showToast('✓ Família "' + familyName + '" criada');
+    loadCustomers();
+  } catch (err) {
+    console.error('[addFamily]', err);
+    admAlert('Erro ao criar família', err.message || String(err), { icon: '⚠', danger: true });
+  }
+};
+
+// ============================================================
+// ADD MEMBER (adiciona pessoa numa familia existente)
+// ============================================================
+window.__addMember = async (familyId, familyName) => {
+  const data = await admForm(
+    'Nova pessoa em "' + familyName + '"',
+    'Adiciona um membro na família. Email é opcional — só preencha se a pessoa precisar logar no app.',
+    [
+      { name: 'name',     label: 'Nome *',                type: 'text',   value: '', placeholder: 'Ex: João Silva' },
+      { name: 'email',    label: 'Email (opcional)',      type: 'email',  value: '', placeholder: 'joao@email.com — só se for logar' },
+      { name: 'phone',    label: 'Telefone (opcional)',   type: 'tel',    value: '', placeholder: '+55 11 99999-9999' },
+      { name: 'age',      label: 'Idade (anos)',          type: 'number', value: '', placeholder: 'Ex: 8' },
+      { name: 'height',   label: 'Altura (cm)',           type: 'number', value: '', placeholder: 'Ex: 132' },
+      { name: 'subtitle', label: 'Subtítulo (opcional)',  type: 'text',   value: '', placeholder: 'Ex: 💸 Quem paga a conta' },
+      { name: 'override', label: 'Tipo',                  type: 'select', value: '', options: [
+        { value: '',      label: 'Automático (pela idade — <10 = criança)' },
+        { value: 'child', label: '👶 Criança (manual)' },
+        { value: 'adult', label: '👤 Adulto (manual)' },
+      ]},
+      { name: 'can_edit', label: 'Pode editar plano?',    type: 'select', value: 'no', options: [
+        { value: 'no',  label: 'Não' },
+        { value: 'yes', label: 'Sim' },
+      ]},
+    ],
+    { icon: '➕', okLabel: 'Adicionar pessoa' }
+  );
+  if (!data) return;
+
+  const name = (data.name || '').trim();
+  const email = (data.email || '').trim().toLowerCase();
+  const phone = (data.phone || '').trim() || null;
+  const subtitle = (data.subtitle || '').trim() || null;
+  if (!name) return showToast('Nome é obrigatório', 'err');
+  if (email && !email.includes('@')) return showToast('Email inválido', 'err');
+
+  let age = null;
+  if ((data.age || '') !== '') {
+    age = parseInt(data.age, 10);
+    if (!Number.isFinite(age) || age < 0 || age > 120) return showToast('Idade inválida (0-120)', 'err');
+  }
+  let height = null;
+  if ((data.height || '') !== '') {
+    height = parseInt(data.height, 10);
+    if (!Number.isFinite(height) || height < 30 || height > 250) return showToast('Altura inválida (30-250 cm)', 'err');
+  }
+  let isChild = null;
+  if (data.override === 'child') isChild = true;
+  else if (data.override === 'adult') isChild = false;
+
+  try {
+    let allowedId = null;
+    if (email) {
+      const { data: existing } = await supa.from('allowed_users').select('id, family_id').eq('email', email).maybeSingle();
+      if (existing) {
+        if (existing.family_id && existing.family_id !== familyId) {
+          const ok = await admConfirm(
+            'Email já vinculado',
+            'Esse email (' + email + ') já está vinculado a outra família. Deseja MOVER pra "' + familyName + '"?',
+            { icon: '⚠', okLabel: 'Sim, mover' }
+          );
+          if (!ok) return;
+        }
+        const { error: eUp } = await supa.from('allowed_users').update({ family_id: familyId }).eq('id', existing.id);
+        if (eUp) console.warn('[addMember] update allowed_users:', eUp.message);
+        allowedId = existing.id;
+      } else {
+        const { data: au, error: eIn } = await supa.from('allowed_users').insert({ email, family_id: familyId }).select();
+        if (eIn) console.warn('[addMember] insert allowed_users:', eIn.message);
+        allowedId = au && au[0] ? au[0].id : null;
+      }
+    }
+
+    const memberPayload = {
+      family_id: familyId,
+      name,
+      phone,
+      subtitle,
+      age,
+      height,
+      is_child: isChild,
+      can_edit_plan: data.can_edit === 'yes',
+      auth_user_id: allowedId,
+    };
+    const { error: e2 } = await supa.from('family_members').insert(memberPayload);
+    if (e2) throw new Error('Cria membro: ' + e2.message);
+
+    showToast('✓ "' + name + '" adicionado em "' + familyName + '"');
+    loadCustomers();
+  } catch (err) {
+    console.error('[addMember]', err);
+    admAlert('Erro ao adicionar pessoa', err.message || String(err), { icon: '⚠', danger: true });
+  }
+};
+
 function exportCustomersCSV() {
   const groups = getCustomersFiltered();
   const rows = [['familia', 'owner', 'nome', 'email', 'idade', 'tipo', 'altura_cm', 'edita_plano', 'role']];
@@ -1543,6 +1732,7 @@ document.getElementById('custSearch').addEventListener('input', renderCustomers)
 document.getElementById('custFilterFamily').addEventListener('change', renderCustomers);
 document.getElementById('custFilterType').addEventListener('change', renderCustomers);
 document.getElementById('custRefresh').addEventListener('click', loadCustomers);
+document.getElementById('custAddFamily').addEventListener('click', window.__addFamily);
 document.getElementById('custExport').addEventListener('click', exportCustomersCSV);
 
 // ============================================================
