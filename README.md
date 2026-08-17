@@ -15,7 +15,7 @@ PWA da família pra organizar a viagem a Orlando em 2026. Roda em qualquer naveg
 - **Despesas** com OCR de cupom via OpenAI (foto da nota → preenchimento automático), escopo pessoal/grupo e split tracking.
 - **Clima** próximos dias via Open-Meteo, com alertas dentro do chat da Pixie.
 - **Pixie (IA)** — assistente da viagem rodando em GPT-4o-mini com contexto rico (família, itinerário, filas, despesas, clima).
-- **Auth** por magic link via Supabase, com allowlist de e-mails.
+- **Auth** por Acesso Livre (email direto) ou magic link via Supabase, com allowlist de e-mails.
 - **Admin** pra gerenciar a allowlist e cadastrar locais novos.
 
 ---
@@ -164,6 +164,7 @@ URL: `https://ujnazpcffceuyctnnoip.supabase.co` (config em `config.js`).
 ### Tabelas principais
 
 - `allowed_users` — allowlist de e-mails pra magic link
+- `login_attempts` — log de logins por Acesso Livre, usado pro rate limit
 - `families` — uma por viagem; tem `photo_url` (foto do hero)
 - `family_members` — membros vinculados (opcionalmente) a `auth_user_id`
 - `expenses` — despesas com `scope` (`personal`/`group`), `paid_by`, `receipt_url`, `split_with[]`
@@ -178,8 +179,32 @@ URL: `https://ujnazpcffceuyctnnoip.supabase.co` (config em `config.js`).
 - `pixie-chat` — chat com OpenAI (gpt-4o-mini), recebe contexto rico
 - `receipt-ocr` — OCR de cupom com gpt-4o vision, devolve JSON estruturado
 - `queue-snapshot-cron` — chamada por pg_cron a cada hora, faz snapshot das filas dos 9 parques
+- `acesso-livre` — login direto por email, sem link mágico (ver abaixo)
 
 Todas com **Verify JWT off** (são efetivamente públicas, mas o RLS do Supabase protege os dados).
+
+### Acesso Livre
+
+A tela de login (`/app` e `/acessadm`) tem dois botões: **🔓 Acesso Livre** (principal)
+e "Prefiro receber o link mágico" (o fluxo antigo, intacto). No Acesso Livre:
+
+1. Front chama a Edge Function `acesso-livre` com o email
+2. A função (service_role) confirma `allowed_users.status = 'active'` e gera um
+   token de magic link com `auth.admin.generateLink()` — **sem mandar email**
+3. Browser troca o token por sessão real em `/auth/v1/verify`
+
+⚠️ **Isso remove a prova de posse do email.** Quem souber o email de alguém da
+allowlist entra na conta dessa pessoa. Foi uma escolha deliberada — o app é da
+família e a base é pequena. Se a base crescer, reconsiderar.
+
+**Pra desligar:** delete a Edge Function `acesso-livre` no Supabase. O botão passa
+a dar "Acesso livre desligado — use o link mágico" e o fluxo antigo continua
+funcionando normal, sem precisar de deploy do front.
+
+**Pra tirar o acesso de alguém:** `update allowed_users set status = 'paused'`.
+Vale pros dois fluxos de uma vez.
+
+Tabela e cola de manutenção: `supabase/sql/acesso_livre.sql`.
 
 ### Por que JWT legacy e não publishable key
 

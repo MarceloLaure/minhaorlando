@@ -44,6 +44,8 @@
     .login-card input:focus{border-color:var(--gold)}
     .login-card button{width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:#0B1B3A;font-weight:800;font-size:14px;letter-spacing:.02em;box-shadow:0 8px 24px -8px rgba(252,211,77,.5)}
     .login-card button:disabled{opacity:.6;cursor:wait}
+    .login-card button.secondary{margin-top:10px;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:13px;font-weight:700;box-shadow:none}
+    .login-card button.secondary:hover{background:rgba(255,255,255,.05);color:var(--text)}
     .login-msg{margin-top:14px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.45}
     .login-msg.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86EFAC}
     .login-msg.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#FCA5A5}
@@ -182,11 +184,12 @@
     <div class="login-card">
       <div class="login-icon">🔐</div>
       <h1>Acesso administrativo</h1>
-      <p>Digite o email cadastrado como admin. Te mando um link mágico pra entrar.</p>
+      <p>Digite o email cadastrado como admin pra entrar.</p>
       <form id="loginForm">
         <label for="loginEmail">Email do admin</label>
         <input type="email" id="loginEmail" placeholder="voce@email.com" required autocomplete="email">
-        <button type="submit" id="loginBtn">Enviar link mágico →</button>
+        <button type="submit" id="loginFreeBtn">🔓 Acesso Livre →</button>
+        <button type="button" class="secondary" id="loginBtn">Prefiro receber o link mágico</button>
       </form>
       <div id="loginMsg"></div>
     </div>
@@ -372,6 +375,7 @@ const whoBox = document.getElementById('who');
 const whoEmail = document.getElementById('whoEmail');
 const loginForm = document.getElementById('loginForm');
 const loginBtn = document.getElementById('loginBtn');
+const loginFreeBtn = document.getElementById('loginFreeBtn');
 const loginMsg = document.getElementById('loginMsg');
 
 function showMsg(text, type = 'ok') {
@@ -379,11 +383,59 @@ function showMsg(text, type = 'ok') {
   loginMsg.textContent = text;
 }
 
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
+function readLoginEmail() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   loginMsg.textContent = '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showMsg('Digite um email válido.', 'err');
+    return null;
+  }
+  return email;
+}
+
+// ACESSO LIVRE — entra na hora, sem link no email. A Edge Function confirma
+// allowed_users.status='active' e devolve um token de magic link ja gerado.
+// checkAuth() logo abaixo continua exigindo role=admin, entao email de
+// nao-admin cria sessao mas nao abre o painel.
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = readLoginEmail();
+  if (!email) return;
+  loginFreeBtn.disabled = true;
   loginBtn.disabled = true;
+  loginFreeBtn.textContent = 'Entrando...';
+  try {
+    const res = await fetch(SUPA_URL + '/functions/v1/acesso-livre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 403) throw new Error('Email não autorizado. Fale com outro admin.');
+      if (res.status === 429) throw new Error('Muitas tentativas. Espera uns minutos.');
+      if (res.status === 404) throw new Error('Acesso livre desligado — use o link mágico.');
+      throw new Error(data.error || ('Erro [' + res.status + ']'));
+    }
+    const { error } = await supa.auth.verifyOtp({ token_hash: data.token_hash, type: 'magiclink' });
+    if (error) throw error;
+    showMsg('Entrando...', 'ok');
+    // onAuthStateChange dispara SIGNED_IN -> checkAuth() assume daqui
+  } catch (err) {
+    showMsg('Erro: ' + (err.message || err), 'err');
+  } finally {
+    loginFreeBtn.disabled = false;
+    loginBtn.disabled = false;
+    loginFreeBtn.textContent = '🔓 Acesso Livre →';
+  }
+});
+
+// LINK MÁGICO — fluxo antigo, intacto
+loginBtn.addEventListener('click', async () => {
+  const email = readLoginEmail();
+  if (!email) return;
+  loginBtn.disabled = true;
+  loginFreeBtn.disabled = true;
   loginBtn.textContent = 'Enviando...';
   try {
     // Pre-valida via RPC (security definer — não vaza a lista de admins)
@@ -404,7 +456,8 @@ loginForm.addEventListener('submit', async (e) => {
     showMsg('Erro: ' + (err.message || err), 'err');
   } finally {
     loginBtn.disabled = false;
-    loginBtn.textContent = 'Enviar link mágico →';
+    loginFreeBtn.disabled = false;
+    loginBtn.textContent = 'Prefiro receber o link mágico';
   }
 });
 
