@@ -81,7 +81,7 @@ O arquivo tem ~1.6 MB e contém:
 | `51f48dda` | `OrlandoAPIs` (clima, câmbio, queue-times) + `ATTRACTIONS` + `RESTAURANTS` + `ITINERARY` |
 | `6d75937b` | `SupabaseAPI` (REST client custom — evita lib JS por causa do problema da publishable key com Edge Functions) |
 | `a20ca9d8` | Telas de auth + admin allowlist |
-| `01d2bbc5` | HomeScreen, FamilyScreen, PlanScreen |
+| `01d2bbc5` | HomeScreen, FamilyScreen, PlanScreen, `ParkBlock` (roteiro IA + filas ao vivo + shows + dicas — renderizado pelo MapScreen) |
 | `8a0f8847` | MapScreen, AttractionDetail, RestaurantsScreen |
 | `518007d9` | WeatherScreen, ChatScreen (Pixie), ExpensesScreen |
 | `d1a75054` | Componente App principal — auth, navegação, TopBar, PixieFAB |
